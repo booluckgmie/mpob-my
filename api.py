@@ -8,6 +8,7 @@ import duckdb
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 
+import analytics
 import common
 
 app = FastAPI(title="MPOB-MY lake API", version="1.0")
@@ -87,6 +88,29 @@ def headline_latest():
               AND o.period_start = (SELECT max(period_start) FROM v_obs_latest o2
                                     WHERE o2.series_key = o.series_key)
             ORDER BY s.series_key""")
+    finally:
+        con.close()
+
+
+@app.get("/v1/analytics")
+def analytics_endpoint(key: str = "mpob:cpo_daily"):
+    """Price statistics + latest-month supply/demand balance (all status=derived)."""
+    con = db()
+    try:
+        daily = con.execute("SELECT CAST(period AS TIMESTAMP) AS date, value FROM v_daily "
+                            "WHERE series_key = ? AND value IS NOT NULL", [key]).df()
+        h = {}
+        for r in _rows(con, """
+                SELECT replace(o.series_key, 'mpob:headline:', '') AS k, o.value
+                FROM v_obs_latest o WHERE o.series_key LIKE 'mpob:headline:%' AND o.granularity = 'm'
+                  AND o.period_start = (SELECT max(period_start) FROM v_obs_latest o2
+                                        WHERE o2.series_key = o.series_key)"""):
+            k = r["k"]
+            if k.endswith(":pct_change"):
+                h.setdefault(k[:-11], {})["pct"] = r["value"]
+            else:
+                h.setdefault(k, {})["value"] = r["value"]
+        return {"price": analytics.price_stats(daily), "balance": analytics.balance(h), "status": "derived"}
     finally:
         con.close()
 

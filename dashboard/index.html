@@ -24,6 +24,13 @@
   canvas { max-height:340px }
   table { width:100%; border-collapse:collapse; font-size:13px } td,th { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line) }
   .FRESH{color:var(--accent)} .DUE{color:var(--warn)} .STALE{color:var(--bad)} .note { color:var(--mute); font-size:12px; margin-top:8px }
+  .two { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:16px }
+  .stat { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--line); font-size:13px }
+  .tag { font-size:11px; color:var(--mute); border:1px solid var(--line); border-radius:4px; padding:0 5px; margin-left:6px }
+  .ctl { display:grid; grid-template-columns:130px 1fr 54px; gap:8px; align-items:center; font-size:13px; margin:6px 0 }
+  .ctl input[type=range] { width:100% } .ctl input[type=number] { width:64px }
+  .presets button { background:none; border:1px solid var(--line); color:var(--ink); padding:3px 9px; border-radius:6px; cursor:pointer; margin-right:4px }
+  h2 { font-size:15px; margin:18px 0 8px }
 </style>
 </head>
 <body>
@@ -36,6 +43,31 @@
       <span class="tabs" id="tabs"></span></div>
     <canvas id="chart" role="img" aria-label="CPO price chart"></canvas>
     <div class="note" id="chartnote"></div>
+  </div>
+  <h2>Price analytics <span class="tag">derived</span></h2>
+  <div class="grid" id="pkpis"></div>
+  <div class="two">
+    <div class="card"><strong>Seasonality &mdash; monthly average by year</strong><canvas id="seas"></canvas>
+      <div class="note">Only years BEPI still serves (about 3) &mdash; too short for a 5-year band.</div></div>
+    <div class="card"><strong>Supply &amp; demand balance, latest MPOB month <span class="tag">derived</span></strong>
+      <div id="bal" style="margin-top:6px"></div></div>
+  </div>
+  <h2>2027 projection simulator <span class="tag">illustrative, not a forecast</span></h2>
+  <div class="two">
+    <div class="card">
+      <div class="presets" id="presets"></div>
+      <div class="ctl"><label>El Ni&ntilde;o (ONI)</label><input id="oni" type="range" min="0" max="2.5" step="0.1" value="1"><span id="oniv"></span></div>
+      <div class="ctl"><label>Impact lag (months)</label><input id="lag" type="range" min="3" max="15" step="1" value="12"><span id="lagv"></span></div>
+      <div class="ctl"><label>B50 progress</label><input id="b50" type="range" min="0" max="100" step="5" value="0"><span id="b50v"></span></div>
+      <div class="note"><strong>Assumptions (edit):</strong></div>
+      <div class="ctl"><label>Base output (Mt)</label><input id="aBase" type="number" step="0.1" value="19.6"><span></span></div>
+      <div class="ctl"><label>Baseline usage (Mt)</label><input id="aUse" type="number" step="0.1" value="20"><span></span></div>
+      <div class="ctl"><label>Loss % at ONI 1</label><input id="aLoss" type="number" step="0.5" value="2"><span></span></div>
+      <div class="ctl"><label>B50 extra demand (Mt)</label><input id="aB50" type="number" step="0.5" value="3"><span></span></div>
+      <div class="ctl"><label>Price % per pt S/U</label><input id="aPx" type="number" step="0.5" value="2.5"><span></span></div>
+    </div>
+    <div class="card"><strong>Scenario result</strong><div id="sim" style="margin-top:6px"></div>
+      <div class="note" id="simnote"></div></div>
   </div>
   <div class="card"><strong>Data freshness</strong>
     <table id="fresh"><thead><tr><th>Series</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
@@ -94,8 +126,80 @@ async function fresh(){
     `<tr><td>${r.series_key}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
 }
 
-tabs();
-Promise.all([kpis(), draw(), fresh()]).catch(e => document.getElementById("asof").textContent = "Failed to load: " + e.message);
+
+let A = null, seasChart;
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const pc = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+async function analytics(){
+  A = await get("/v1/analytics"); const p = A.price;
+  const k = (l,v,sub) => `<div class="card"><div class="k">${l}</div><div class="v">${v}</div><div class="k">${sub}</div></div>`;
+  document.getElementById("pkpis").innerHTML =
+    k("Latest CPO", fmt(p.latest.value), p.latest.date + " MYR/t") +
+    k("1 month", pc(p.change_pct["1m"]), "3m " + pc(p.change_pct["3m"])) +
+    k("12 months", pc(p.change_pct["12m"]), "vs 12m avg " + pc(p.vs_12m_avg_pct)) +
+    k("Volatility", p.vol_annualised_pct + "%", "annualised, ~20 trading days") +
+    k("12m range", fmt(p.low_12m) + "–" + fmt(p.high_12m), "MYR/t");
+  const css = getComputedStyle(document.documentElement);
+  const cols = [css.getPropertyValue("--mute"), css.getPropertyValue("--warn"), css.getPropertyValue("--accent"), css.getPropertyValue("--bad")];
+  const years = Object.keys(p.monthly_by_year);
+  if (seasChart) seasChart.destroy();
+  seasChart = new Chart(document.getElementById("seas"), { type:"line",
+    data:{ labels: MON, datasets: years.map((y,i)=>({ label:y, borderColor: cols[i % cols.length], pointRadius:2, spanGaps:false,
+           data: MON.map((_,m)=>p.monthly_by_year[y][m+1] ?? null) })) },
+    options:{ plugins:{ legend:{ position:"bottom" } } } });
+  const b = A.balance, el = document.getElementById("bal");
+  if (!b) { el.textContent = "Headline data incomplete."; return; }
+  const row = (l,v,u="t") => `<div class="stat"><span>${l}</span><span>${typeof v==="number"?fmt(v):v}${u}</span></div>`;
+  el.innerHTML = row("Opening stock (derived)", b.opening_stock) + row("+ CPO production", b.production) + row("+ Imports", b.imports) +
+    row("&minus; Closing stock", b.closing_stock) + row("= Disappearance", b.disappearance) + row("&nbsp;&nbsp;of which exports", b.exports) +
+    row("&nbsp;&nbsp;of which implied domestic", b.implied_domestic_use) +
+    row("<strong>Stock/usage (annualised)</strong>", b.stock_usage_annualised_pct, "%") +
+    row("<strong>Stock cover</strong>", b.stock_cover_months_of_exports, " months of exports") +
+    `<div class="note">${b.note}</div>`;
+  sim();
+}
+const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
+function simModel(oni, lag, b50, a, stockNow, px){
+  const lagF = clamp((lag - 3) / 9, 0, 1);                       // 12m = full effect, 6m ~ a third
+  const loss = a.loss * Math.pow(oni, 1.3) * lagF;                // % of base output
+  const prod = a.base * (1 - loss / 100);
+  const use = a.use + a.b50 * b50 / 100;
+  const close = stockNow + prod - use;
+  const su = close / use * 100;
+  const su0 = (stockNow + a.base - a.use) / a.use * 100;          // no El Niño, no B50
+  const price = px * (1 + clamp(-a.px * (su - su0) / 100, -0.35, 0.35));
+  return { loss, prod, use, close, su, su0, price };
+}
+function sim(){
+  if (!A || !A.balance) return;
+  const g = id => parseFloat(document.getElementById(id).value);
+  const oni = g("oni"), lag = g("lag"), b50 = g("b50");
+  document.getElementById("oniv").textContent = oni.toFixed(1);
+  document.getElementById("lagv").textContent = lag + "m";
+  document.getElementById("b50v").textContent = b50 + "%";
+  const a = { base:g("aBase"), use:g("aUse"), loss:g("aLoss"), b50:g("aB50"), px:g("aPx") };
+  const r = simModel(oni, lag, b50, a, A.balance.closing_stock / 1e6, A.price.latest.value);
+  const base = simModel(0, lag, 0, a, A.balance.closing_stock / 1e6, A.price.latest.value);
+  const row = (l,v) => `<div class="stat"><span>${l}</span><span>${v}</span></div>`;
+  document.getElementById("sim").innerHTML =
+    row("2027 production", r.prod.toFixed(2) + " Mt") + row("vs no-shock baseline", pc((r.prod / base.prod - 1) * 100)) +
+    row("Impact lands", "~" + new Date(Date.now() + lag * 30.4 * 864e5).toLocaleDateString("en-GB", {month:"short", year:"numeric"})) +
+    row("Usage", r.use.toFixed(2) + " Mt") + row("End stocks", r.close.toFixed(2) + " Mt") +
+    row("Stock/usage", r.su.toFixed(1) + "% (baseline " + r.su0.toFixed(1) + "%)") +
+    row("<strong>Indicative CPO price</strong>", fmt(r.price) + " MYR/t");
+  document.getElementById("simnote").textContent =
+    "Starts from the real latest stock and price. Loss, usage, B50 demand and price sensitivity are assumptions you can change; none is calibrated to MPOB data.";
+}
+const PRESETS = { "La Niña":[0.2,12,0], "Base":[1,12,0], "Strong El Niño":[2.2,12,0], "Strong + B50":[2.2,12,100] };
+function presets(){
+  const el = document.getElementById("presets");
+  el.innerHTML = Object.keys(PRESETS).map(n=>`<button>${n}</button>`).join("");
+  el.onclick = e => { const v = PRESETS[e.target.textContent]; if(!v) return;
+    ["oni","lag","b50"].forEach((id,i)=>document.getElementById(id).value = v[i]); sim(); };
+  document.querySelectorAll("#oni,#lag,#b50,#aBase,#aUse,#aLoss,#aB50,#aPx").forEach(i=>i.addEventListener("input", sim));
+}
+tabs(); presets();
+Promise.all([kpis(), draw(), fresh(), analytics()]).catch(e => document.getElementById("asof").textContent = "Failed to load: " + e.message);
 </script>
 </body>
 </html>
