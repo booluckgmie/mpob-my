@@ -13,7 +13,7 @@ import argparse, csv, sys, time
 from datetime import date, datetime, timezone
 
 import common
-import dosm_ingest, price_daily, ticker
+import bepi_reports, dosm_ingest, price_daily, ticker
 
 LOG = common.GOLD / "run_log.csv"
 FIELDS = ["run_at", "mode", "pass", "step", "inserted", "revised", "unchanged", "ok", "note"]
@@ -46,7 +46,12 @@ def _price_years(mode: str) -> list[int]:
 def one_pass(mode: str, n: int) -> list[dict]:
     steps = [("price_daily", lambda: price_daily.write(price_daily.sync(_price_years(mode)))),
              ("ticker", ticker.run)]
-    if mode in ("weekly", "monthly"):
+    y = date.today().year
+    if mode == "daily":     # core reports, current year only: ~6 requests, catches the monthly release day
+        steps.append(("bepi_p0", lambda: bepi_reports.sync(bepi_reports.P0, y)))
+    else:                   # weekly/monthly refinement: every family, wider window, flags revisions
+        fams = [f["id"] for f in __import__("crawl").CFG["families"] if f["id"] not in bepi_reports.UNSUPPORTED]
+        steps.append(("bepi_all", lambda: bepi_reports.sync(fams, y - (1 if mode == "weekly" else 3))))
         steps.append(("dosm", dosm_ingest.run))
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     return [{"run_at": now, "mode": mode, "pass": n, **_step(name, fn)} for name, fn in steps]

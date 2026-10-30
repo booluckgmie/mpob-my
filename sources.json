@@ -55,7 +55,7 @@
       "grain": "month",
       "freq": "monthly",
       "parser": "parse_generic_table",
-      "title": "production\\s+of\\s+crude\\s+palm\\s+oil(?!\\s+and)"
+      "title": "^(?!.*forecast).*production\\s+of\\s+crude\\s+palm\\s+oil(?!\\s+and)"
     },
     {
       "id": "oer",

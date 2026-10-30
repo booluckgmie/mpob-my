@@ -59,3 +59,46 @@ def balance(h: dict[str, dict]) -> dict | None:
         "note": "opening stock derived from MPOB's reported % change; disappearance = opening + production + imports - closing; "
                 "production is CPO only, stock is total palm oil",
     }
+
+
+def production_band(s: pd.DataFrame, years_back: int = 5) -> dict:
+    """s: columns period_start (date), value. Latest month vs the same calendar month in prior years.
+
+    The band is the p25-p75 of up to `years_back` prior years; all of it is `derived`.
+    """
+    d = s.dropna(subset=["value"]).copy()
+    d["period_start"] = pd.to_datetime(d["period_start"])
+    d = d.sort_values("period_start").drop_duplicates("period_start", keep="last")
+    if d.empty:
+        return {}
+    last = d.iloc[-1]
+    ly, lm = last["period_start"].year, last["period_start"].month
+    hist = d[d["period_start"].dt.year < ly]
+    by_month = {}
+    for m in range(1, 13):
+        prior = hist[(hist["period_start"].dt.month == m) & (hist["period_start"].dt.year >= ly - years_back)]["value"]
+        by_month[m] = None if len(prior) < 3 else {"p25": float(prior.quantile(.25)), "p50": float(prior.median()),
+                                                  "p75": float(prior.quantile(.75)), "n": int(len(prior))}
+    band = by_month[lm]
+    prev = d[d["period_start"] == last["period_start"] - pd.DateOffset(years=1)]["value"]
+    out = {"latest": {"period": last["period_start"].strftime("%Y-%m"), "value": float(last["value"])},
+           "yoy_pct": None if prev.empty else round((float(last["value"]) / float(prev.iloc[0]) - 1) * 100, 2),
+           "band_by_month": by_month,
+           "series": [{"period": p.strftime("%Y-%m"), "value": float(v)} for p, v in zip(d["period_start"], d["value"])][-36:]}
+    if band:
+        out["vs_median_pct"] = round((float(last["value"]) / band["p50"] - 1) * 100, 2)
+        out["position"] = "above band" if last["value"] > band["p75"] else "below band" if last["value"] < band["p25"] else "within band"
+    return out
+
+
+def exact_balance(stock: pd.DataFrame, production: float, imports: float, exports: float) -> dict | None:
+    """Balance from a real stock history: stock df has period_start, value (>= 2 months)."""
+    d = stock.dropna(subset=["value"]).sort_values("period_start")
+    if len(d) < 2:
+        return None
+    close, opening = float(d["value"].iloc[-1]), float(d["value"].iloc[-2])
+    disappearance = opening + production + imports - close
+    return {"opening_stock": round(opening), "closing_stock": round(close), "disappearance": round(disappearance),
+            "implied_domestic_use": round(disappearance - exports),
+            "stock_usage_annualised_pct": round(close / (disappearance * 12) * 100, 1),
+            "stock_cover_months_of_exports": round(close / exports, 2), "opening_source": "published stock history"}

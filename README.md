@@ -13,7 +13,9 @@ python price_daily.py --backfill 2023       # BEPI only serves ~3 years; empty y
 python ticker.py                            # headline scoreboard (monthly)
 python dosm_ingest.py                       # OpenDOSM IPI (total + MSIC 104)
 python reconcile.py --run                   # MPOB vs DOSM growth check, exit 1 if attention needed
-python crawl.py --list                      # BEPI file inventory by family x year
+python crawl.py --list                      # BEPI dataset inventory by family x year
+python bepi_reports.py --all --since 2011   # BEPI HTML reports: state production, stocks, exports, OER, ...
+python bepi_reports.py --rebuild            # re-parse saved raw reports offline
 python -m uvicorn api:app --port 8000       # API + dashboard at http://localhost:8000/
 python -m pytest
 ```
@@ -40,13 +42,38 @@ PH (public holiday) and NT (no trade) days are stored as NULL-value rows and exc
 
 ## What is and isn't covered
 
-- **Done and tested against the live sites:** daily CPO price (last ~3 years from BEPI, 2023 from the
-  repo CSVs), headline ticker, OpenDOSM IPI, BEPI link inventory.
-- **Not built:** the Excel parsers for the families listed in `sources.json` (export by destination,
-  stocks, OER, yield, ...). `crawl.py --download <family>` fetches and hashes the files; parsing each
-  needs the real sheet layouts (header rows shift between editions).
-- **Reconciliation** needs MPOB monthly production history. The ticker only exposes the current month, so
-  it fills in one month per release until the Excel parsers exist.
+BEPI has no Excel downloads: each dataset page embeds an HTML report (`/stat/web_report1.php`), which
+`bepi_reports.py` parses (paired half-year tables, wide product/unit tables, months-down-rows tables).
+Each saved report has a JSON sidecar so `--rebuild` can re-parse offline.
+
+| Family | Coverage |
+|---|---|
+| CPO production by state | 2013-2026 monthly |
+| Monthly exports by product (tonnes and RM) | 2014-2026 |
+| Exports by port, FFB received (sectoral), OER (CPO and kernel oil) by state | 2012/2013-2026 |
+| Closing stocks, refinery stocks | 2021-2026 (BEPI publishes no earlier) |
+| Germinated seed supply/demand | 2013-2026 |
+| Daily CPO price | ~3 years from BEPI, 2023 seeded from the CSVs in `data/` |
+| Headline scoreboard | monthly, from the ticker |
+| OpenDOSM IPI (total + MSIC 104) | monthly, canary only |
+
+Not loaded, deliberately: `summary_annual` and the seedlings table (labels embed other values, layout not
+parsed yet); `import_monthly` (BEPI says "information is being updated"); `yield` and `area` (no embedded
+report found). Failures are quarantined and logged, never silently dropped.
+
+Checks on the real data: state production sums exactly to the regional and national rows, and the
+September 2026 production and stock figures match the headline ticker to the tonne.
+
+Reconciliation compares MPOB CPO production growth with DOSM IPI group 104 (all vegetable/animal oils and
+fats). They only loosely agree (MoM correlation ~0.8, typical gap ~5 points), so the flag threshold is
+calibrated from the history (robust z-score), and alerts only cover the last 6 comparable months.
+
+Dashboard analytics: price statistics, seasonality, supply/demand balance (opening stock from the
+published history), CPO production vs the same month in prior years, production by state, a choropleth of
+production / OER / FFB received (boundaries: geoBoundaries, ODbL, simplified; "other states" grouping is
+assumed), and an illustrative 2027 simulator whose assumptions you edit. Indonesia is not mapped (no
+comparable official data here), and no El Nino stress layer (needs rainfall data).
+
 - `jenis=1Y` in the price URL selects the series; other values likely expose FFB / PKO / export prices. Unprobed.
 - `sources.yaml` is the descriptive dataset registry; `sources.json` is what the crawler reads.
 - `scrapeCPO.py` / `cpo_daily_prices.csv` are the original prototype, kept for reference.

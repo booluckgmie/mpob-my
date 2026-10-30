@@ -2,7 +2,7 @@
 Reconcile MPOB production against the DOSM index built from it.
 
 Units differ (tonnes vs index), so compare GROWTH, never levels.
-   OK          growth agrees within tolerance
+   OK          growth gap is within the series' own historical spread
    DIVERGENT   same direction, gap too wide
    SIGN_FLIP   opposite direction - investigate first
    MPOB_STALE  DOSM moved, MPOB unchanged -> parser or capture likely broken
@@ -16,9 +16,13 @@ from __future__ import annotations
 import argparse, sys
 import pandas as pd
 
-MOM_TOL = 3.0     # percentage points
-YOY_TOL = 5.0
-MPOB_KEY = "mpob:headline:cpo_production"
+# DOSM group 104 (all vegetable & animal oils and fats) only loosely tracks CPO production: on real
+# history MoM correlation is ~0.8 and the typical gap ~5 points. So the threshold is calibrated from the
+# data: a month is flagged only when its gap is an outlier (robust z-score on the gap distribution).
+Z_FLAG = 3.5
+MIN_HISTORY = 12
+RECENT = 6          # alert only on the last N comparable months
+MPOB_KEY = "bepi:cpo_production:production_of_crude_palm_oil:malaysia:tonnes"
 DOSM_KEY = "dosm:ipi:104"
 
 
@@ -36,12 +40,18 @@ def reconcile(mpob: pd.DataFrame, dosm: pd.DataFrame) -> pd.DataFrame:
     d = growth(dosm, DOSM_KEY).rename(columns={"value": "dosm", "mom": "dosm_mom", "yoy": "dosm_yoy"})
     j = m.merge(d, on="period", how="left")
 
-    gap = (j["mpob_mom"] - j["dosm_mom"]).abs()
+    diff = j["mpob_mom"] - j["dosm_mom"]
+    ok = diff.dropna()
+    med = ok.median() if len(ok) else 0.0
+    mad = (ok - med).abs().median() * 1.4826 if len(ok) >= MIN_HISTORY else float("nan")
+    z = ((diff - med).abs() / mad) if mad and mad == mad else diff * 0     # no history -> never flag
     sign = (j["mpob_mom"] * j["dosm_mom"]) < 0
+    j["gap"] = diff
+    j["z"] = z
 
     j["status"] = "OK"
-    j.loc[gap > MOM_TOL, "status"] = "DIVERGENT"
-    j.loc[sign & j["dosm_mom"].notna(), "status"] = "SIGN_FLIP"
+    j.loc[z > Z_FLAG, "status"] = "DIVERGENT"
+    j.loc[(z > Z_FLAG) & sign & j["dosm_mom"].notna(), "status"] = "SIGN_FLIP"
     j.loc[j["dosm_mom"].isna(), "status"] = "NO_DOSM"
     j.loc[j["mpob_mom"].isna() & j["dosm_mom"].notna(), "status"] = "NO_MPOB"   # no prior MPOB month yet
 
@@ -54,7 +64,9 @@ def reconcile(mpob: pd.DataFrame, dosm: pd.DataFrame) -> pd.DataFrame:
 def summarise(j: pd.DataFrame) -> int:
     counts = j["status"].value_counts().to_dict()
     print("reconciliation:", counts)
-    bad = j[j["status"].isin(["SIGN_FLIP", "DIVERGENT", "MPOB_STALE"])]
+    comparable = j.loc[j["dosm_mom"].notna(), "period"].sort_values()
+    recent = j["period"] >= (comparable.iloc[-RECENT:].iloc[0] if len(comparable) else "")   # old outliers don't alert
+    bad = j[recent & j["status"].isin(["SIGN_FLIP", "DIVERGENT", "MPOB_STALE"])]
     if bad.empty:
         print("all comparable months agree")
         return 0

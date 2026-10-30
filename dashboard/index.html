@@ -52,6 +52,22 @@
     <div class="card"><strong>Supply &amp; demand balance, latest MPOB month <span class="tag">derived</span></strong>
       <div id="bal" style="margin-top:6px"></div></div>
   </div>
+  <h2>Production &amp; states <span class="tag">BEPI reports</span></h2>
+  <div class="two">
+    <div class="card"><strong>CPO production vs same-month history</strong><canvas id="prodchart"></canvas>
+      <div class="note" id="prodnote"></div></div>
+    <div class="card"><strong>Production by state, latest month</strong><div id="states" style="margin-top:6px"></div></div>
+  </div>
+  <h2>Spatial analysis <span class="tag">MPOB state reports</span></h2>
+  <div class="card chartcard">
+    <div class="bar"><strong id="mapTitle">Map</strong><span class="tabs" id="mapTabs"></span></div>
+    <div class="two" style="margin-bottom:0">
+      <div><svg id="map" viewBox="0 0 640 300" style="width:100%;height:auto" role="img" aria-label="Choropleth map of Malaysian states"></svg>
+        <div class="note" id="legend"></div></div>
+      <div id="mapList"></div>
+    </div>
+    <div class="note">Boundaries: geoBoundaries (ODbL), simplified. &ldquo;Other states&rdquo; is MPOB&rsquo;s grouping &mdash; shown here as Perlis, Melaka, Pulau Pinang, KL, Putrajaya and Labuan (assumed). Indonesia is not mapped: no comparable official data in this pipeline.</div>
+  </div>
   <h2>2027 projection simulator <span class="tag">illustrative, not a forecast</span></h2>
   <div class="two">
     <div class="card">
@@ -70,7 +86,7 @@
       <div class="note" id="simnote"></div></div>
   </div>
   <div class="card"><strong>Data freshness</strong>
-    <table id="fresh"><thead><tr><th>Series</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
+    <table id="fresh"><thead><tr><th>Dataset</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
     <div class="note">Weekly/monthly/quarterly prices are derived averages of daily prices; quarterly rolls up from monthly. Daily prices exclude PH/NT days.</div>
   </div>
 </main>
@@ -123,7 +139,7 @@ function tabs(){
 async function fresh(){
   const rows = (await get("/v1/freshness")).filter(r => !r.series_key.endsWith(":pct_change"));
   document.querySelector("#fresh tbody").innerHTML = rows.map(r =>
-    `<tr><td>${r.series_key}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
+    `<tr><td>${r.series_key}${r.n_series > 1 ? ` <span class="k">(${r.n_series} series)</span>` : ""}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
 }
 
 
@@ -148,15 +164,87 @@ async function analytics(){
            data: MON.map((_,m)=>p.monthly_by_year[y][m+1] ?? null) })) },
     options:{ plugins:{ legend:{ position:"bottom" } } } });
   const b = A.balance, el = document.getElementById("bal");
-  if (!b) { el.textContent = "Headline data incomplete."; return; }
+  if (!b) { el.textContent = "Headline data incomplete."; production(); return; }
   const row = (l,v,u="t") => `<div class="stat"><span>${l}</span><span>${typeof v==="number"?fmt(v):v}${u}</span></div>`;
   el.innerHTML = row("Opening stock (derived)", b.opening_stock) + row("+ CPO production", b.production) + row("+ Imports", b.imports) +
     row("&minus; Closing stock", b.closing_stock) + row("= Disappearance", b.disappearance) + row("&nbsp;&nbsp;of which exports", b.exports) +
     row("&nbsp;&nbsp;of which implied domestic", b.implied_domestic_use) +
     row("<strong>Stock/usage (annualised)</strong>", b.stock_usage_annualised_pct, "%") +
     row("<strong>Stock cover</strong>", b.stock_cover_months_of_exports, " months of exports") +
-    `<div class="note">${b.note}</div>`;
-  sim();
+    `<div class="note">${b.note || ("Opening stock: " + b.opening_source)}</div>`;
+  production(); sim();
+}
+
+let prodChart;
+function production(){
+  const p = A.production, el = document.getElementById("prodnote");
+  if (!p || !p.latest) { el.textContent = "No production history yet."; return; }
+  const ser = p.series.slice(-24), css = getComputedStyle(document.documentElement);
+  const band = k => ser.map(x => { const b = p.band_by_month[+x.period.slice(5)]; return b ? b[k] : null; });
+  if (prodChart) prodChart.destroy();
+  prodChart = new Chart(document.getElementById("prodchart"), { type:"line",
+    data:{ labels: ser.map(x=>x.period), datasets:[
+      { label:"Prior-years p25\u2013p75", data:band("p75"), borderColor:"transparent", backgroundColor:css.getPropertyValue("--line"), pointRadius:0, fill:"+1" },
+      { label:"p25", data:band("p25"), borderColor:"transparent", pointRadius:0 },
+      { label:"CPO production (t)", data:ser.map(x=>x.value), borderColor:css.getPropertyValue("--accent"), pointRadius:2 } ] },
+    options:{ plugins:{ legend:{ labels:{ filter:i=>i.text!=="p25" } } }, scales:{ x:{ ticks:{ maxTicksLimit:8 } } } } });
+  el.textContent = `${p.latest.period}: ${fmt(p.latest.value)} t, ${p.position || "no band"}` +
+    (p.vs_median_pct != null ? ` (${pc(p.vs_median_pct)} vs median of prior years)` : "") +
+    (p.yoy_pct != null ? `, YoY ${pc(p.yoy_pct)}` : "") + ". Shaded band = p25\u2013p75 of the same month in up to 5 prior years.";
+  const real = A.states.filter(s => !["malaysia","p_malaysia","sabah_sarawak"].includes(s.state));
+  const max = Math.max(...real.map(s => s.value));
+  document.getElementById("states").innerHTML = A.states.map(s => {
+    const sub = ["malaysia","p_malaysia","sabah_sarawak"].includes(s.state);
+    return `<div class="stat" style="${sub?"font-weight:650":""}"><span>${nice(s.state)}</span><span>${fmt(s.value)} <span class="${s.yoy_pct>=0?"up":"down"} pct">${s.yoy_pct==null?"":pc(s.yoy_pct)}</span></span></div>` +
+      (sub ? "" : `<div style="height:4px;background:var(--accent);opacity:.5;width:${(s.value/max*100).toFixed(0)}%;margin-bottom:2px"></div>`);
+  }).join("") + `<div class="note">Period ${A.states[0].period}. YoY vs same month a year earlier.</div>`;
+}
+
+let GEO = null, mapMetric = "production";
+const MAPS = { production:"CPO production", oer:"Oil extraction rate", ffb:"FFB received" };
+const NAMES = { malaysia:"Malaysia", p_malaysia:"Peninsular Malaysia", sabah_sarawak:"Sabah + Sarawak", other_states:"Other states" };
+const nice = k => NAMES[k] || k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+function project(c){ return [ (c[0] - 99) / 21 * 640, (8 - c[1]) / 8 * 300 ]; }       // lon 99-120, lat 0-8
+function pathOf(geom){
+  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  return polys.map(p => p.map(r => "M" + r.map(c => project(c).map(n => n.toFixed(1)).join(",")).join("L") + "Z").join("")).join("");
+}
+function ramp(t, diverging){                                     // t in 0..1
+  const css = getComputedStyle(document.documentElement);
+  if (!diverging) return `color-mix(in srgb, ${css.getPropertyValue("--accent")} ${Math.round(15 + t * 85)}%, ${css.getPropertyValue("--card")})`;
+  return t >= .5 ? `color-mix(in srgb, ${css.getPropertyValue("--accent")} ${Math.round((t - .5) * 190)}%, ${css.getPropertyValue("--card")})`
+                 : `color-mix(in srgb, ${css.getPropertyValue("--bad")} ${Math.round((.5 - t) * 190)}%, ${css.getPropertyValue("--card")})`;
+}
+async function drawMap(){
+  if (!GEO) GEO = await get("/boundaries/my_states.geojson");
+  let d;
+  try { d = await get("/v1/spatial?metric=" + mapMetric); }
+  catch (e) { document.getElementById("mapTitle").textContent = MAPS[mapMetric] + ": no data yet"; return; }
+  const by = Object.fromEntries(d.states.map(s => [s.state, s]));
+  const vals = d.states.filter(s => !s.aggregate).map(s => s.value), lo = Math.min(...vals), hi = Math.max(...vals);
+  const half = Math.max(...vals.map(v => Math.abs(v - d.national)));
+  document.getElementById("mapTitle").textContent = `${d.label} (${d.unit}), ${d.period}`;
+  document.getElementById("map").innerHTML = GEO.features.map(f => {
+    const k = f.properties.bepi.toLowerCase().replace(/ /g, "_"), s = by[k];
+    const t = !s ? null : d.diverging ? .5 + (s.value - d.national) / (2 * half || 1) : (s.value - lo) / ((hi - lo) || 1);
+    const tip = s ? `${f.properties.bepi}: ${fmt(s.value)} ${d.unit}` + (s.yoy_pct != null ? `, YoY ${pc(s.yoy_pct)}` : "") : f.properties.bepi + ": no data";
+    return `<path d="${pathOf(f.geometry)}" fill="${t == null ? "var(--line)" : ramp(t, d.diverging)}" stroke="var(--ink)" stroke-width=".6" stroke-opacity=".5"><title>${tip}</title></path>`;
+  }).join("");
+  document.getElementById("legend").textContent = d.diverging
+    ? `Diverging around the national rate (${d.national.toFixed(2)}${d.unit}): green above, red below.`
+    : `Darker = higher (${fmt(lo)} to ${fmt(hi)} ${d.unit}).`;
+  const rows = d.states.slice().sort((a, b) => b.value - a.value);
+  document.getElementById("mapList").innerHTML = rows.map(s => {
+    const sub = s.aggregate;
+    const extra = d.diverging ? (s.vs_national == null ? "" : (s.vs_national > 0 ? "+" : "") + s.vs_national.toFixed(2) + " vs MY")
+                              : (s.share_pct == null ? "" : s.share_pct + "% of MY");
+    return `<div class="stat" style="${sub ? "font-weight:650" : ""}"><span>${nice(s.state)}</span><span>${fmt(s.value)}<span class="k"> ${extra}</span> <span class="${s.yoy_pct >= 0 ? "up" : "down"} pct">${s.yoy_pct == null ? "" : pc(s.yoy_pct)}</span></span></div>`;
+  }).join("");
+}
+function mapTabs(){
+  const el = document.getElementById("mapTabs");
+  el.innerHTML = Object.entries(MAPS).map(([k, l]) => `<button data-m="${k}" class="${k === mapMetric ? "on" : ""}">${l}</button>`).join("");
+  el.onclick = e => { if (e.target.dataset.m) { mapMetric = e.target.dataset.m; mapTabs(); drawMap(); } };
 }
 const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
 function simModel(oni, lag, b50, a, stockNow, px){
@@ -198,8 +286,8 @@ function presets(){
     ["oni","lag","b50"].forEach((id,i)=>document.getElementById(id).value = v[i]); sim(); };
   document.querySelectorAll("#oni,#lag,#b50,#aBase,#aUse,#aLoss,#aB50,#aPx").forEach(i=>i.addEventListener("input", sim));
 }
-tabs(); presets();
-Promise.all([kpis(), draw(), fresh(), analytics()]).catch(e => document.getElementById("asof").textContent = "Failed to load: " + e.message);
+tabs(); presets(); mapTabs();
+Promise.all([kpis(), draw(), fresh(), analytics(), drawMap()]).catch(e => document.getElementById("asof").textContent = "Failed to load: " + e.message);
 </script>
 </body>
 </html>
