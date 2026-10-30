@@ -71,11 +71,14 @@ Reconciliation compares MPOB CPO production growth with DOSM IPI group 104 (all 
 fats). They only loosely agree (MoM correlation ~0.8, typical gap ~5 points), so the flag threshold is
 calibrated from the history (robust z-score), and alerts only cover the last 6 comparable months.
 
-Dashboard analytics: price statistics, seasonality, supply/demand balance (opening stock from the
-published history), CPO production vs the same month in prior years, production by state, a choropleth of
-production / OER / FFB received (boundaries: geoBoundaries, ODbL, simplified; "other states" grouping is
-assumed), and an illustrative 2027 simulator whose assumptions you edit. Indonesia is not mapped (no
-comparable official data here), and no El Nino stress layer (needs rainfall data).
+Dashboard (`dashboard/index.html`, served at `/`): written for different readers. **Overview** has plain-language
+facts and key numbers with sparklines; **Markets** has supply/demand, production vs earlier years, the
+supply/demand balance and price statistics; **Regions** is a state map for production, oil extraction rate,
+FFB received, fruit yield and planted area; **Outlook** is an illustrative 2027 what-if simulator whose
+assumptions you edit; **Data & methods** holds data freshness, the known issues (read from this README),
+a glossary and API notes. The "Explain things to me" switch opens a short explanation under every section.
+Boundaries: geoBoundaries (ODbL), simplified; "other states" grouping is assumed. Indonesia is not mapped
+(no comparable official data here) and there is no El Nino stress layer.
 
 - `jenis=1Y` in the price URL selects the series; other values likely expose FFB / PKO / export prices. Unprobed.
 - `sources.yaml` is the descriptive dataset registry; `sources.json` is what the crawler reads.

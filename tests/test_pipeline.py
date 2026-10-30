@@ -257,3 +257,33 @@ def test_pdf_area_integer_percentages():
     df, _ = pdf_reports.parse_pdf_text(text)
     tot = df[df.section == "total"].set_index("label")["value"]
     assert tot["JOHOR"] == 745630 and tot["PERLIS"] == 652 and tot["MALAYSIA"] == 5737985
+
+
+def test_pdf_yield_unpublished_months_keep_their_columns():
+    import pdf_reports
+    text = ("AVERAGE FFB YIELD\nJULY-DECEMBER 2025 & 2026 (TONNES/HECTARE)\nState July Aug Sept Oct Nov Dec January-September\n"
+            "2025 2026 2025 2026 2025 2026 2025 2026 2025 2026 2025 2026 2025 2026\n"
+            "Johor 1.89 1.79 1.94 1.78 1.85 2.15 1.97 1.95 1.84 14.45 14.18")
+    df, _ = pdf_reports.parse_pdf_text(text)
+    d = df.set_index(["year", "month"])["value"]
+    assert d[(2026, 9)] == 2.15 and d[(2025, 10)] == 1.97 and d[(2025, 12)] == 1.84
+    assert (2026, 10) not in d.index and len(df) == 9              # October-December 2026 are not published yet
+
+
+def test_overview_kpi_and_plain_insights():
+    import analytics
+    idx = pd.date_range("2025-01-01", "2026-09-01", freq="MS")
+    df = pd.DataFrame({"period_start": idx, "value": [1_000_000 + 10_000 * i for i in range(len(idx))]})
+    k = analytics.kpi("production", "Production", "plain", "million tonnes", df, scale=1e-6)
+    assert k["period"] == "2026-09" and k["period_label"] == "September 2026" and len(k["spark"]) == 21
+    assert k["yoy_pct"] is not None and k["mom_pct"] is not None
+    text = analytics.insights({"production": k}, {"position": "above band"}, None)[0]["text"]
+    assert "September 2026" in text and "higher than usual" in text
+    assert "good" not in text and "bad" not in text                  # facts and direction only
+
+
+def test_issues_endpoint_reads_readme_table():
+    import api
+    rows = api.issues()
+    assert len(rows) >= 15 and rows[0]["n"] == 1 and "`" not in rows[0]["issue"] and rows[0]["where"]
+    assert all(r["title"] and len(r["title"]) <= 95 and not r["title"].endswith("(P") for r in rows)

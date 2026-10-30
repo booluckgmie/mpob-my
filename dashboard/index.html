@@ -3,291 +3,477 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MPOB-MY Dashboard</title>
+<title>Malaysia Palm Oil Dashboard</title>
+<meta name="description" content="Malaysian palm oil production, stocks, exports, prices and regions from MPOB and DOSM data, in plain language.">
 <style>
-  :root { --bg:#f6f7f4; --card:#fff; --ink:#1c2a1f; --mute:#667064; --line:#dfe4da;
-          --accent:#2f7d4f; --warn:#b7791f; --bad:#b83a3a; }
+  :root {
+    --bg:#f4f7f1; --card:#ffffff; --ink:#15241a; --mute:#5b6b5f; --line:#dce5d8; --soft:#eef4ea;
+    --accent:#1f7a4d; --accent-ink:#ffffff; --up:#1b8a6b; --down:#d4690f; --info:#2f6fd0; --amber:#e3a008;
+    --hero1:#0d4f33; --hero2:#1f7a4d; --hero3:#7cc15b; --shadow:0 1px 2px rgba(20,40,25,.06),0 6px 18px rgba(20,40,25,.06);
+  }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-          --bg:#121712; --card:#1b231c; --ink:#e6ece4; --mute:#93a091; --line:#2b362d;
-          --accent:#5fbf86; --warn:#e0a84a; --bad:#e26d6d; } }
-  * { box-sizing:border-box }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui,sans-serif; }
-  main { max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
-  h1 { font-size:20px; margin:0 0 2px } .sub { color:var(--mute); margin:0 0 18px; font-size:13px }
-  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin-bottom:16px }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px }
-  .k { color:var(--mute); font-size:12px } .v { font-size:22px; font-weight:650; margin-top:2px }
-  .pct { font-size:12px } .up{color:var(--accent)} .down{color:var(--bad)}
-  .chartcard { margin-bottom:16px } .bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px }
-  .tabs button { background:none; border:1px solid var(--line); color:var(--ink); padding:4px 10px; border-radius:6px; cursor:pointer; margin-left:4px }
-  .tabs button.on { background:var(--accent); color:#fff; border-color:var(--accent) }
+    --bg:#0f1611; --card:#18221b; --ink:#e7efe6; --mute:#9db0a0; --line:#2a382d; --soft:#1e2b22;
+    --accent:#5fbf86; --accent-ink:#0b1a11; --up:#4fd1a5; --down:#ff9a4a; --info:#7aa7ff; --amber:#f0b840;
+    --hero1:#0b2c1d; --hero2:#14573a; --hero3:#3f8a4b; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.28);
+  } }
+  * { box-sizing:border-box } html { scroll-behavior:smooth }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  a { color:var(--info) } h1,h2,h3 { line-height:1.2; margin:0 }
+  button { font:inherit; color:inherit; cursor:pointer }
+  :focus-visible { outline:3px solid var(--info); outline-offset:2px; border-radius:6px }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 16px }
+
+  /* hero */
+  .hero { background:linear-gradient(120deg,var(--hero1),var(--hero2) 60%,var(--hero3)); color:#fff; position:relative; overflow:hidden }
+  .hero::after { content:""; position:absolute; right:-60px; top:-60px; width:300px; height:300px; border-radius:50%;
+                 background:radial-gradient(circle,rgba(255,255,255,.18),transparent 65%); animation:drift 14s ease-in-out infinite alternate }
+  @keyframes drift { to { transform:translate(-40px,30px) scale(1.15) } }
+  .hero .wrap { padding-top:26px; padding-bottom:22px; position:relative; z-index:1 }
+  .hero h1 { font-size:clamp(22px,4vw,32px); letter-spacing:-.01em }
+  .hero p { margin:6px 0 14px; max-width:60ch; opacity:.92 }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+  .chip { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28);
+          color:#fff; padding:4px 11px; border-radius:99px; font-size:13px; backdrop-filter:blur(4px) }
+  .dot { width:9px; height:9px; border-radius:50%; background:#8fe3a6; box-shadow:0 0 0 0 rgba(143,227,166,.7); animation:pulse 2.2s infinite }
+  .dot.warn { background:#ffd166 } .dot.bad { background:#ff8a65 }
+  @keyframes pulse { 70% { box-shadow:0 0 0 8px rgba(143,227,166,0) } 100% { box-shadow:0 0 0 0 rgba(143,227,166,0) } }
+  .toggle { margin-left:auto; background:#fff; color:#0d4f33; border:0; font-weight:600; padding:6px 14px; border-radius:99px }
+  .toggle[aria-pressed="true"] { background:var(--amber); color:#2a1d00 }
+
+  /* nav */
+  nav.tabs { position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 88%,transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line) }
+  nav.tabs .wrap { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; padding-top:8px; padding-bottom:8px }
+  nav.tabs button { background:none; border:0; padding:8px 14px; border-radius:99px; white-space:nowrap; color:var(--mute); font-weight:600; transition:all .18s }
+  nav.tabs button:hover { background:var(--soft); color:var(--ink) }
+  nav.tabs button[aria-selected="true"] { background:var(--accent); color:var(--accent-ink) }
+
+  main { padding:20px 0 56px }
+  section.panel { display:none } section.panel.on { display:block; animation:rise .35s ease both }
+  @keyframes rise { from { opacity:0; transform:translateY(10px) } }
+  h2.sec { font-size:19px; margin:26px 0 4px } h2.sec:first-child { margin-top:4px }
+  .lead { color:var(--mute); margin:0 0 12px; max-width:70ch }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)) }
+  .grid.wide { grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr)) }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); transition:transform .18s,box-shadow .18s }
+  .card.lift:hover { transform:translateY(-3px); box-shadow:0 10px 26px rgba(20,40,25,.13) }
+  .k { color:var(--mute); font-size:12.5px } .note { color:var(--mute); font-size:12.5px; margin-top:8px }
+  .bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px }
+  .seg { display:inline-flex; background:var(--soft); border-radius:99px; padding:3px; gap:2px; flex-wrap:wrap }
+  .seg button { border:0; background:none; padding:4px 12px; border-radius:99px; color:var(--mute); font-size:13px; font-weight:600 }
+  .seg button.on { background:var(--accent); color:var(--accent-ink) }
   canvas { max-height:340px }
-  table { width:100%; border-collapse:collapse; font-size:13px } td,th { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line) }
-  .FRESH{color:var(--accent)} .DUE{color:var(--warn)} .STALE{color:var(--bad)} .note { color:var(--mute); font-size:12px; margin-top:8px }
-  .two { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:16px }
-  .stat { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--line); font-size:13px }
-  .tag { font-size:11px; color:var(--mute); border:1px solid var(--line); border-radius:4px; padding:0 5px; margin-left:6px }
-  .ctl { display:grid; grid-template-columns:130px 1fr 54px; gap:8px; align-items:center; font-size:13px; margin:6px 0 }
-  .ctl input[type=range] { width:100% } .ctl input[type=number] { width:64px }
-  .presets button { background:none; border:1px solid var(--line); color:var(--ink); padding:3px 9px; border-radius:6px; cursor:pointer; margin-right:4px }
-  h2 { font-size:15px; margin:18px 0 8px }
+
+  /* insights */
+  .insight { display:flex; gap:12px; align-items:flex-start }
+  .ico { flex:none; width:42px; height:42px; border-radius:12px; display:grid; place-items:center; font-size:22px; background:var(--soft) }
+  .insight .t { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); font-weight:700; display:flex; gap:8px; align-items:center }
+  .insight p { margin:2px 0 0 }
+  .tag { font-size:11.5px; border-radius:99px; padding:1px 8px; background:var(--soft); color:var(--mute); white-space:nowrap }
+  .tag.up { color:var(--up); background:color-mix(in srgb,var(--up) 14%,transparent) }
+  .tag.down { color:var(--down); background:color-mix(in srgb,var(--down) 14%,transparent) }
+
+  /* kpi */
+  .kpi .v { font-size:30px; font-weight:750; letter-spacing:-.02em; margin-top:2px; font-variant-numeric:tabular-nums }
+  .kpi .u { font-size:13px; color:var(--mute); font-weight:500; margin-left:4px }
+  .kpi .chg { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 6px }
+  .kpi svg { width:100%; height:44px; display:block; overflow:visible }
+  .kpi svg path.l { fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; stroke-dashoffset:1; animation:draw 1.1s .15s ease forwards }
+  .kpi svg path.a { fill:url(#g); opacity:0; animation:fade .8s .8s forwards }
+  @keyframes draw { to { stroke-dashoffset:0 } } @keyframes fade { to { opacity:1 } }
+  .kpi .plain { display:none; margin-top:6px; font-size:12.5px; color:var(--mute) }
+  body.plain .kpi .plain { display:block }
+  .matters { font-size:11.5px; color:var(--mute); margin-top:6px }
+
+  /* help */
+  details.help { background:var(--soft); border-radius:10px; padding:8px 12px; margin:8px 0 12px; font-size:14px }
+  details.help summary { cursor:pointer; font-weight:600; color:var(--accent) } details.help p { margin:8px 0 2px }
+  .gloss { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px }
+  .gloss button { border:1px solid var(--line); background:var(--card); border-radius:99px; padding:3px 12px; font-size:13px }
+  .gloss button.on { background:var(--accent); color:var(--accent-ink); border-color:var(--accent) }
+  #glossText { margin-top:8px; min-height:1.5em }
+
+  /* tables / rows */
+  .stat { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px }
+  .stat:last-child { border-bottom:0 } .stat b { font-variant-numeric:tabular-nums }
+  .up { color:var(--up) } .down { color:var(--down) } .pct { font-size:12px }
+  table { width:100%; border-collapse:collapse; font-size:13.5px } th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line) }
+  th { color:var(--mute); font-weight:600 }
+  .state { font-weight:700 } .FRESH{color:var(--up)} .DUE{color:var(--amber)} .STALE{color:var(--down)}
+  .bar-h { height:5px; border-radius:3px; background:var(--accent); opacity:.55; margin:1px 0 3px; transition:width .6s }
+
+  /* controls */
+  .ctl { display:grid; grid-template-columns:150px 1fr 52px; gap:8px; align-items:center; font-size:13.5px; margin:8px 0 }
+  .ctl input[type=range] { width:100%; accent-color:var(--accent) } .ctl input[type=number] { width:76px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink) }
+  .bigres { font-size:34px; font-weight:750; letter-spacing:-.02em }
+  code, pre { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px } pre { background:var(--soft); padding:10px 12px; border-radius:10px; overflow:auto }
+  .issue { border-top:1px solid var(--line); padding:10px 0 } .issue summary { cursor:pointer; font-weight:600 } .issue p { margin:6px 0 0; color:var(--mute) }
+  .skel { background:linear-gradient(90deg,var(--soft),var(--line),var(--soft)); background-size:200% 100%; animation:sh 1.2s infinite; border-radius:8px; min-height:18px }
+  @keyframes sh { to { background-position:-200% 0 } }
+  #map path { transition:opacity .15s, stroke-width .15s; cursor:pointer } #map path:hover { opacity:.82; stroke-width:1.6 }
+  footer { color:var(--mute); font-size:12.5px; padding:20px 0 40px; border-top:1px solid var(--line) }
+  @media (max-width:560px) { .ctl { grid-template-columns:1fr 1fr 44px } .ctl label { grid-column:1/-1 } .toggle { margin-left:0 } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important } .kpi svg path.l { stroke-dashoffset:0 } .kpi svg path.a { opacity:1 } }
 </style>
 </head>
 <body>
-<main>
-  <h1>Malaysian palm oil &mdash; single source of truth</h1>
-  <p class="sub" id="asof">loading&hellip;</p>
-  <div class="grid" id="kpis"></div>
-  <div class="card chartcard">
-    <div class="bar"><strong>Local CPO price (MYR/t)</strong>
-      <span class="tabs" id="tabs"></span></div>
-    <canvas id="chart" role="img" aria-label="CPO price chart"></canvas>
-    <div class="note" id="chartnote"></div>
+<header class="hero">
+  <div class="wrap">
+    <h1>Malaysian palm oil at a glance</h1>
+    <p>How much is produced, how much is in store, what is shipped abroad, what it costs, and where it grows &mdash; from official MPOB and DOSM data, explained in plain language.</p>
+    <div class="chips">
+      <span class="chip" id="chipData"><span class="dot"></span><span>loading&hellip;</span></span>
+      <span class="chip" id="chipPrice" hidden></span>
+      <button class="toggle" id="plainBtn" aria-pressed="false" title="Show short explanations next to every chart and number">&#128161; Explain things to me</button>
+    </div>
   </div>
-  <h2>Price analytics <span class="tag">derived</span></h2>
-  <div class="grid" id="pkpis"></div>
-  <div class="two">
-    <div class="card"><strong>Seasonality &mdash; monthly average by year</strong><canvas id="seas"></canvas>
-      <div class="note">Only years BEPI still serves (about 3) &mdash; too short for a 5-year band.</div></div>
-    <div class="card"><strong>Supply &amp; demand balance, latest MPOB month <span class="tag">derived</span></strong>
-      <div id="bal" style="margin-top:6px"></div></div>
+</header>
+
+<nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist" id="tabs"></div></nav>
+
+<main class="wrap">
+<!-- ============ OVERVIEW ============ -->
+<section class="panel" id="overview" role="tabpanel">
+  <h2 class="sec">What is happening now</h2>
+  <p class="lead">Five short facts, written for anyone. Arrows show which way a number moved &mdash; they do not say whether that is good or bad, because that depends on whether you grow, refine, trade or buy palm oil.</p>
+  <div class="grid wide" id="insights"><div class="card skel" style="height:84px"></div><div class="card skel" style="height:84px"></div><div class="card skel" style="height:84px"></div></div>
+
+  <h2 class="sec">Key numbers</h2>
+  <p class="lead">Latest figures, with the change since last month and last year, and the last two years as a small chart.</p>
+  <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs></svg>
+  <div class="grid" id="kpis"><div class="card skel" style="height:150px"></div><div class="card skel" style="height:150px"></div><div class="card skel" style="height:150px"></div></div>
+
+  <h2 class="sec">Palm oil price over time</h2>
+  <div class="card">
+    <div class="bar"><strong>Crude palm oil, RM per tonne</strong><span class="seg" id="freqSeg"></span></div>
+    <canvas id="priceChart" role="img" aria-label="Crude palm oil price over time"></canvas>
+    <div class="note" id="priceNote"></div>
+    <details class="help"><summary>What am I looking at?</summary><p>The line is the price a tonne of crude palm oil fetched on the Malaysian market. &ldquo;Daily&rdquo; shows each trading day; the other views average the days into weeks, months or quarters so long trends are easier to see.</p></details>
   </div>
-  <h2>Production &amp; states <span class="tag">BEPI reports</span></h2>
-  <div class="two">
-    <div class="card"><strong>CPO production vs same-month history</strong><canvas id="prodchart"></canvas>
-      <div class="note" id="prodnote"></div></div>
-    <div class="card"><strong>Production by state, latest month</strong><div id="states" style="margin-top:6px"></div></div>
+
+  <h2 class="sec">New to palm oil?</h2>
+  <div class="card">
+    <div class="k">Tap a word</div>
+    <div class="gloss" id="glossChips"></div>
+    <p id="glossText" class="lead"></p>
   </div>
-  <h2>Spatial analysis <span class="tag">MPOB state reports</span></h2>
-  <div class="card chartcard">
-    <div class="bar"><strong id="mapTitle">Map</strong><span class="tabs" id="mapTabs"></span></div>
-    <div class="two" style="margin-bottom:0">
-      <div><svg id="map" viewBox="0 0 640 300" style="width:100%;height:auto" role="img" aria-label="Choropleth map of Malaysian states"></svg>
+</section>
+
+<!-- ============ MARKETS ============ -->
+<section class="panel" id="markets" role="tabpanel">
+  <h2 class="sec">Supply, demand and stocks</h2>
+  <p class="lead">For traders, refiners and analysts: how production, exports and stocks have moved together.</p>
+  <div class="card"><div class="bar"><strong>Production, exports and stocks (million tonnes, monthly)</strong></div>
+    <canvas id="tradeChart" role="img" aria-label="Production, exports and stocks over time"></canvas>
+    <details class="help"><summary>How to read this</summary><p>When stocks (the dark line) climb, more oil is being made than shipped or used at home. When they fall, the country is drawing down its tanks. Production is seasonal &mdash; it usually peaks around September to October and dips in the first quarter.</p></details>
+  </div>
+
+  <div class="grid wide" style="margin-top:12px">
+    <div class="card"><strong>Latest month&rsquo;s balance <span class="tag">derived</span></strong><div id="bal" style="margin-top:6px"></div>
+      <details class="help"><summary>What does this mean?</summary><p>Starting from last month&rsquo;s stock, add what was produced and imported, subtract what is left &mdash; the rest was <em>used</em>: shipped abroad or consumed at home. <b>Stock cover</b> says how many months of exports the stock could fill.</p></details></div>
+    <div class="card"><strong>Production vs the same month in earlier years</strong><canvas id="prodChart" role="img" aria-label="Production compared with earlier years"></canvas>
+      <div class="note" id="prodNote"></div></div>
+  </div>
+
+  <h2 class="sec">Price statistics <span class="tag">derived</span></h2>
+  <div class="grid" id="ptiles"></div>
+  <div class="card" style="margin-top:12px"><strong>Does the price follow the seasons?</strong><canvas id="seasChart" role="img" aria-label="Average monthly price by year"></canvas>
+    <div class="note">Each line is one year&rsquo;s monthly average. Only about three years of daily prices are published, so this cannot show a long-run pattern.</div></div>
+</section>
+
+<!-- ============ REGIONS ============ -->
+<section class="panel" id="regions" role="tabpanel">
+  <h2 class="sec">Where palm oil is grown and made</h2>
+  <p class="lead">Pick a measure to colour the map. For planters and agronomists: compare your state with the national figure.</p>
+  <div class="card">
+    <div class="bar"><strong id="mapTitle">Map</strong><span class="seg" id="mapTabs"></span></div>
+    <div class="grid wide" style="align-items:start">
+      <div><svg id="map" viewBox="0 0 640 300" style="width:100%;height:auto" role="img" aria-label="Map of Malaysian states"></svg>
         <div class="note" id="legend"></div></div>
       <div id="mapList"></div>
     </div>
-    <div class="note">Boundaries: geoBoundaries (ODbL), simplified. &ldquo;Other states&rdquo; is MPOB&rsquo;s grouping &mdash; shown here as Perlis, Melaka, Pulau Pinang, KL, Putrajaya and Labuan (assumed). Indonesia is not mapped: no comparable official data in this pipeline.</div>
+    <details class="help"><summary>What am I looking at?</summary><p><b>Production</b> is crude palm oil made, <b>oil extraction rate</b> is how much oil the mills get from each tonne of fruit, <b>FFB received</b> is fruit delivered to mills, <b>yield</b> is fruit harvested per hectare on estates, and <b>planted area</b> is land under oil palm. Colours on rate maps show who is above (green) or below (orange) the national figure.</p></details>
+    <div class="note">States Perlis, Melaka, Pulau Pinang, KL, Putrajaya and Labuan are reported together as &ldquo;Other states&rdquo; in most MPOB tables, so they are grey on maps that need them separately. Boundaries: geoBoundaries (ODbL), simplified.</div>
   </div>
-  <h2>2027 projection simulator <span class="tag">illustrative, not a forecast</span></h2>
-  <div class="two">
+</section>
+
+<!-- ============ OUTLOOK ============ -->
+<section class="panel" id="outlook" role="tabpanel">
+  <h2 class="sec">What if&hellip;? <span class="tag">illustrative, not a forecast</span></h2>
+  <p class="lead">A play area. Move the sliders to see how a dry El Ni&ntilde;o year or higher biodiesel demand could change next year&rsquo;s output, stocks and price. It starts from today&rsquo;s real stock and price; everything else is an assumption you can change.</p>
+  <div class="grid wide">
     <div class="card">
-      <div class="presets" id="presets"></div>
-      <div class="ctl"><label>El Ni&ntilde;o (ONI)</label><input id="oni" type="range" min="0" max="2.5" step="0.1" value="1"><span id="oniv"></span></div>
-      <div class="ctl"><label>Impact lag (months)</label><input id="lag" type="range" min="3" max="15" step="1" value="12"><span id="lagv"></span></div>
-      <div class="ctl"><label>B50 progress</label><input id="b50" type="range" min="0" max="100" step="5" value="0"><span id="b50v"></span></div>
-      <div class="note"><strong>Assumptions (edit):</strong></div>
-      <div class="ctl"><label>Base output (Mt)</label><input id="aBase" type="number" step="0.1" value="19.6"><span></span></div>
-      <div class="ctl"><label>Baseline usage (Mt)</label><input id="aUse" type="number" step="0.1" value="20"><span></span></div>
-      <div class="ctl"><label>Loss % at ONI 1</label><input id="aLoss" type="number" step="0.5" value="2"><span></span></div>
-      <div class="ctl"><label>B50 extra demand (Mt)</label><input id="aB50" type="number" step="0.5" value="3"><span></span></div>
-      <div class="ctl"><label>Price % per pt S/U</label><input id="aPx" type="number" step="0.5" value="2.5"><span></span></div>
+      <div class="seg" id="presets" style="margin-bottom:6px"></div>
+      <div class="ctl"><label for="oni">El Ni&ntilde;o strength</label><input id="oni" type="range" min="0" max="2.5" step="0.1" value="1"><span id="oniv"></span></div>
+      <div class="ctl"><label for="lag">Months until output is hit</label><input id="lag" type="range" min="3" max="15" step="1" value="12"><span id="lagv"></span></div>
+      <div class="ctl"><label for="b50">Biodiesel (B50) progress</label><input id="b50" type="range" min="0" max="100" step="5" value="0"><span id="b50v"></span></div>
+      <details class="help" style="margin-top:12px"><summary>Assumptions you can edit</summary>
+        <div class="ctl"><label for="aBase">Normal output (Mt)</label><input id="aBase" type="number" step="0.1" value="19.6"><span></span></div>
+        <div class="ctl"><label for="aUse">Normal use (Mt)</label><input id="aUse" type="number" step="0.1" value="20"><span></span></div>
+        <div class="ctl"><label for="aLoss">Output lost at El Ni&ntilde;o 1 (%)</label><input id="aLoss" type="number" step="0.5" value="2"><span></span></div>
+        <div class="ctl"><label for="aB50">Extra demand at full B50 (Mt)</label><input id="aB50" type="number" step="0.5" value="3"><span></span></div>
+        <div class="ctl"><label for="aPx">Price move per point of stock/usage (%)</label><input id="aPx" type="number" step="0.5" value="2.5"><span></span></div>
+      </details>
     </div>
-    <div class="card"><strong>Scenario result</strong><div id="sim" style="margin-top:6px"></div>
-      <div class="note" id="simnote"></div></div>
+    <div class="card"><strong>Result</strong>
+      <div class="bigres" id="simPrice"></div><div class="k">indicative price, RM per tonne</div>
+      <div id="sim" style="margin-top:10px"></div>
+      <div class="note" id="simnote"></div>
+      <details class="help"><summary>What is El Ni&ntilde;o and why does it matter?</summary><p>El Ni&ntilde;o years bring dry weather to South-East Asia. Palms react slowly &mdash; the drop in fruit usually shows up 9&ndash;12 months later. Biodiesel mandates (such as B50) use up palm oil that would otherwise be exported, so stocks shrink faster.</p></details>
+    </div>
   </div>
-  <div class="card"><strong>Data freshness</strong>
-    <table id="fresh"><thead><tr><th>Dataset</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
-    <div class="note">Weekly/monthly/quarterly prices are derived averages of daily prices; quarterly rolls up from monthly. Daily prices exclude PH/NT days.</div>
+</section>
+
+<!-- ============ DATA & METHODS ============ -->
+<section class="panel" id="data" role="tabpanel">
+  <h2 class="sec">Is the data up to date?</h2>
+  <p class="lead">One row per dataset. &ldquo;Fresh&rdquo; means the newest figure is about as recent as MPOB publishes (monthly data arrives around the 10th for the month before).</p>
+  <div class="card" style="overflow:auto"><table id="fresh"><thead><tr><th>Dataset</th><th>Source id</th><th>Covers</th><th>Series</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+
+  <h2 class="sec">Known data issues</h2>
+  <p class="lead">Read before you rely on a number. Also listed in the project README.</p>
+  <div class="card" id="issues"><div class="skel" style="height:60px"></div></div>
+
+  <h2 class="sec">Glossary</h2>
+  <div class="card" id="glossFull"></div>
+
+  <h2 class="sec">Use the data yourself</h2>
+  <div class="grid wide">
+    <div class="card"><strong>API</strong>
+<pre>GET /v1/overview
+GET /v1/series?key=mpob:cpo_daily&amp;freq=monthly
+GET /v1/spatial?metric=production
+GET /v1/analytics
+GET /v1/freshness   /v1/coverage   /v1/issues</pre>
+      <div class="note">Every aggregated figure is labelled <code>derived</code>; revisions are kept, not overwritten.</div></div>
+    <div class="card"><strong>Sources and limits</strong>
+      <p style="margin:6px 0 0">MPOB / BEPI (production, stocks, exports, yield, area, prices), OpenDOSM (industrial production index, used as a cross-check). Boundaries from geoBoundaries. MPOB lists data purchase rates, so check with them before redistributing the data. Source code, tests and method notes are in the project repository.</p></div>
   </div>
+</section>
 </main>
+
+<footer><div class="wrap">Figures come from public MPOB and DOSM releases and may be revised. &ldquo;Derived&rdquo; means calculated here, not published. Not investment advice.</div></footer>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-const FREQS = ["daily","weekly","monthly","quarterly"];
-const fmt = n => n == null ? "–" : Number(n).toLocaleString("en-MY", {maximumFractionDigits: 2});
-const KPI = {cpo_production:"CPO production", cpo_stock:"CPO stock", po_stock:"Palm oil stock",
-             po_export:"Palm oil export", po_import:"Palm oil import", ffb_price:"FFB price @1% OER"};
-let chart, freq = "monthly";
+/* ---------------------------------------------------------------- helpers */
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const get = async u => { const r = await fetch(u); if (!r.ok) throw new Error(u + " " + r.status); return r.json(); };
+const fmt = (n, d = 2) => n == null ? "–" : Number(n).toLocaleString("en-MY", { maximumFractionDigits: d });
+const pc = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store = { get(k) { try { return localStorage.getItem(k) } catch { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch {} } };
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+const arrow = v => v == null ? "" : v > 0.05 ? "▲" : v < -0.05 ? "▼" : "▶";
+const dirCls = v => v == null || Math.abs(v) < 0.05 ? "" : v > 0 ? "up" : "down";
+const ICONS = { palm: "\u{1F334}", ship: "\u{1F6A2}", tank: "\u{1F6E2}️", coin: "\u{1FA99}", leaf: "\u{1F331}" };
+const NAMES = { malaysia: "Malaysia", p_malaysia: "Peninsular Malaysia", sabah_sarawak: "Sabah + Sarawak", other_states: "Other states" };
+const nice = k => NAMES[k] || k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+const GLOSSARY = [
+  ["CPO", "Crude palm oil: the first oil pressed from the fruit, before it is refined for cooking, food or fuel."],
+  ["FFB", "Fresh fruit bunches: the harvested fruit that mills crush. Mills must process it within a day or two."],
+  ["OER", "Oil extraction rate: the share of the fruit’s weight that comes out as crude palm oil. Around 20% in Malaysia."],
+  ["Stock cover", "How many months of exports the oil currently in storage could supply."],
+  ["Stock/usage", "Stocks as a share of a year’s use. A lower figure means supply is tighter, which tends to support prices."],
+  ["Yield", "How much fruit (or oil) is harvested from each hectare in a period. Here it is for estates, not smallholders."],
+  ["Mature / immature", "Mature palms bear fruit. Immature (young) palms are planted but not yet harvested, so they hint at future supply."],
+  ["B50", "A biodiesel blend with 50% palm-based content. Higher blending uses up palm oil that would otherwise be sold abroad."],
+  ["El Niño", "A climate pattern that brings dry weather to South-East Asia. Palms respond about 9–12 months later."],
+  ["MPOB / BEPI / DOSM", "Malaysian Palm Oil Board; its economics and industry unit that publishes these statistics; and the Department of Statistics Malaysia."],
+  ["Derived", "A figure calculated here from published numbers (averages, ratios, changes), not published by MPOB itself."],
+  ["PH / NT", "Public holiday / no trading. These days have no price and are left out of averages."],
+];
 
-async function get(u){ const r = await fetch(u); if(!r.ok) throw new Error(u+" "+r.status); return r.json(); }
-
-async function kpis(){
-  const rows = await get("/v1/headline/latest");
-  const pct = Object.fromEntries((await get("/v1/series/list")).map(s=>[s.series_key,1]));
-  const el = document.getElementById("kpis"); el.innerHTML = "";
-  let period = "";
-  for (const [id,label] of Object.entries(KPI)) {
-    const r = rows.find(x => x.series_key === "mpob:headline:"+id); if(!r) continue;
-    period = r.period;
-    el.insertAdjacentHTML("beforeend",
-      `<div class="card"><div class="k">${label}</div><div class="v">${fmt(r.value)}</div><div class="k">${r.unit}</div></div>`);
-  }
-  document.getElementById("asof").textContent = period ? `MPOB headline data as of ${period} (monthly, released ~10th)` : "no headline data";
+/* ---------------------------------------------------------------- tabs */
+const TABS = [["overview", "\u{1F3E0} Overview"], ["markets", "\u{1F4C8} Markets"], ["regions", "\u{1F5FA}️ Regions"], ["outlook", "\u{1F52E} Outlook"], ["data", "\u{1F4D6} Data & methods"]];
+const loaded = {};
+const INIT = { overview: initOverview, markets: initMarkets, regions: initRegions, outlook: initOutlook, data: initData };
+function showTab(id, push = true) {
+  if (!INIT[id]) id = "overview";
+  $$("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.t === id));
+  $$("section.panel").forEach(s => s.classList.toggle("on", s.id === id));
+  if (push) history.replaceState(null, "", "#" + id);
+  window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  if (!loaded[id]) { loaded[id] = true; INIT[id]().catch(e => console.error(id, e)); }
+  if (store.get("plain") === "1") $$("details.help").forEach(d => d.open = true);
 }
+TABS.forEach(([id, label]) => { const b = el("button", "", label); b.dataset.t = id; b.setAttribute("role", "tab"); b.onclick = () => showTab(id); $("#tabs").append(b); });
+addEventListener("hashchange", () => showTab(location.hash.slice(1), false));
 
-async function draw(){
+const plainBtn = $("#plainBtn");
+function setPlain(on) {
+  document.body.classList.toggle("plain", on); plainBtn.setAttribute("aria-pressed", on);
+  plainBtn.textContent = on ? "✔ Explanations on" : "\u{1F4A1} Explain things to me";
+  $$("details.help").forEach(d => d.open = on); store.set("plain", on ? "1" : "0");
+}
+plainBtn.onclick = () => setPlain(plainBtn.getAttribute("aria-pressed") !== "true");
+
+/* ---------------------------------------------------------------- overview */
+function countUp(node, to, d, ms = 900) {
+  if (reduced) { node.textContent = fmt(to, d); return; }
+  const t0 = performance.now();
+  (function step(t) { const p = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - p, 3); node.textContent = fmt(to * e, d); if (p < 1) requestAnimationFrame(step); })(t0);
+}
+function spark(vals) {
+  const w = 100, h = 30, mn = Math.min(...vals), mx = Math.max(...vals), rng = (mx - mn) || 1;
+  const pts = vals.map((v, i) => [i / (vals.length - 1) * w, h - 3 - (v - mn) / rng * (h - 6)]);
+  const d = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join("");
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="${d}L${w},${h}L0,${h}Z"/><path class="l" pathLength="1" d="${d}" vector-effect="non-scaling-stroke"/></svg>`;
+}
+const DECIMALS = { price: 0, production: 2, exports: 2, stocks: 2, yield: 2, area: 2 };
+async function initOverview() {
+  const [o] = await Promise.all([get("/v1/overview"), drawPrice()]);
+  const ins = $("#insights"); ins.replaceChildren();
+  o.insights.forEach(i => {
+    const c = el("div", "card lift insight"); c.append(el("div", "ico", ICONS[i.icon] || "•"));
+    const b = el("div"); const t = el("div", "t", i.topic);
+    t.append(el("span", "tag " + (i.tone === "flat" ? "" : i.tone), i.tone === "up" ? "▲ rising" : i.tone === "down" ? "▼ falling" : "▶ steady"));
+    b.append(t, el("p", "", i.text)); c.append(b); ins.append(c);
+  });
+  const box = $("#kpis"); box.replaceChildren();
+  o.kpis.forEach(k => {
+    const c = el("div", "card lift kpi");
+    const chg = [["month", k.mom_pct], ["year", k.yoy_pct]].filter(x => x[1] != null)
+      .map(([l, v]) => `<span class="tag ${dirCls(v)}">${arrow(v)} ${pc(v)} vs last ${l}</span>`).join("");
+    c.innerHTML = `<div class="k">${k.label} · ${k.period_label}</div><div class="v"><span class="num">0</span><span class="u">${k.unit}</span></div>
+      <div class="chg">${chg}</div>${spark(k.spark)}<div class="plain">${k.plain}</div><div class="matters">Matters to: ${k.matters}</div>`;
+    box.append(c); countUp($(".num", c), k.value, DECIMALS[k.key] ?? 2);
+  });
+  const latest = o.kpis.find(k => k.key === "production");
+  $("#chipData").innerHTML = `<span class="dot"></span><span>Production data to ${latest ? latest.period_label : "n/a"}</span>`;
+  const p = o.kpis.find(k => k.key === "price"); if (p) { const c = $("#chipPrice"); c.hidden = false; c.textContent = `Price to ${p.period_label}`; }
+  get("/v1/freshness").then(f => { const worst = f.some(x => x.state === "STALE") ? "bad" : f.some(x => x.state === "DUE") ? "warn" : "";
+    $("#chipData .dot").className = "dot " + worst; }).catch(() => {});
+  const gc = $("#glossChips");
+  GLOSSARY.slice(0, 8).forEach(([t, d]) => { const b = el("button", "", t); b.onclick = () => { $$("button", gc).forEach(x => x.classList.remove("on")); b.classList.add("on"); $("#glossText").textContent = t + " — " + d; }; gc.append(b); });
+  $("#glossText").textContent = "Tap a word above for a one-line explanation.";
+}
+let priceChart, freq = "monthly";
+async function drawPrice() {
+  const seg = $("#freqSeg");
+  if (!seg.children.length) ["daily", "weekly", "monthly", "quarterly"].forEach(f => { const b = el("button", f === freq ? "on" : "", f); b.onclick = () => { freq = f; $$("button", seg).forEach(x => x.classList.toggle("on", x === b)); drawPrice(); }; seg.append(b); });
   const d = await get(`/v1/series?key=mpob:cpo_daily&freq=${freq}`);
   const data = freq === "daily" ? d.data.slice(-260) : d.data;
-  const labels = data.map(x => x.period), vals = data.map(x => x.value);
-  if (chart) chart.destroy();
-  const css = getComputedStyle(document.documentElement);
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: { labels, datasets: [{ label: "CPO MYR/t", data: vals, borderColor: css.getPropertyValue("--accent"),
-            pointRadius: freq==="daily"?0:2, tension: .2, spanGaps: true }] },
-    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 10 } } } }
-  });
-  document.getElementById("chartnote").textContent =
-    freq === "daily" ? "Actual daily prices (last ~260 rows)." : "Derived averages (status = derived).";
+  if (priceChart) priceChart.destroy();
+  priceChart = new Chart($("#priceChart"), { type: "line",
+    data: { labels: data.map(x => x.period), datasets: [{ label: "RM per tonne", data: data.map(x => x.value), borderColor: css("--accent"), backgroundColor: css("--accent") + "22", fill: true, pointRadius: freq === "daily" ? 0 : 2, tension: .25, spanGaps: true }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 9 } } }, animation: { duration: reduced ? 0 : 700 } } });
+  $("#priceNote").textContent = freq === "daily" ? "Actual daily prices, last ~260 trading days." : "Averages of daily prices (derived).";
 }
 
-function tabs(){
-  const el = document.getElementById("tabs");
-  el.innerHTML = FREQS.map(f=>`<button data-f="${f}" class="${f===freq?"on":""}">${f}</button>`).join("");
-  el.onclick = e => { if(e.target.dataset.f){ freq = e.target.dataset.f; tabs(); draw(); } };
-}
-
-async function fresh(){
-  const rows = (await get("/v1/freshness")).filter(r => !r.series_key.endsWith(":pct_change"));
-  document.querySelector("#fresh tbody").innerHTML = rows.map(r =>
-    `<tr><td>${r.series_key}${r.n_series > 1 ? ` <span class="k">(${r.n_series} series)</span>` : ""}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
-}
-
-
-let A = null, seasChart;
-const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const pc = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(1) + "%";
-async function analytics(){
+/* ---------------------------------------------------------------- markets */
+let A = null;
+async function initMarkets() {
   A = await get("/v1/analytics"); const p = A.price;
-  const k = (l,v,sub) => `<div class="card"><div class="k">${l}</div><div class="v">${v}</div><div class="k">${sub}</div></div>`;
-  document.getElementById("pkpis").innerHTML =
-    k("Latest CPO", fmt(p.latest.value), p.latest.date + " MYR/t") +
-    k("1 month", pc(p.change_pct["1m"]), "3m " + pc(p.change_pct["3m"])) +
-    k("12 months", pc(p.change_pct["12m"]), "vs 12m avg " + pc(p.vs_12m_avg_pct)) +
-    k("Volatility", p.vol_annualised_pct + "%", "annualised, ~20 trading days") +
-    k("12m range", fmt(p.low_12m) + "–" + fmt(p.high_12m), "MYR/t");
-  const css = getComputedStyle(document.documentElement);
-  const cols = [css.getPropertyValue("--mute"), css.getPropertyValue("--warn"), css.getPropertyValue("--accent"), css.getPropertyValue("--bad")];
-  const years = Object.keys(p.monthly_by_year);
-  if (seasChart) seasChart.destroy();
-  seasChart = new Chart(document.getElementById("seas"), { type:"line",
-    data:{ labels: MON, datasets: years.map((y,i)=>({ label:y, borderColor: cols[i % cols.length], pointRadius:2, spanGaps:false,
-           data: MON.map((_,m)=>p.monthly_by_year[y][m+1] ?? null) })) },
-    options:{ plugins:{ legend:{ position:"bottom" } } } });
-  const b = A.balance, el = document.getElementById("bal");
-  if (!b) { el.textContent = "Headline data incomplete."; production(); return; }
-  const row = (l,v,u="t") => `<div class="stat"><span>${l}</span><span>${typeof v==="number"?fmt(v):v}${u}</span></div>`;
-  el.innerHTML = row("Opening stock (derived)", b.opening_stock) + row("+ CPO production", b.production) + row("+ Imports", b.imports) +
-    row("&minus; Closing stock", b.closing_stock) + row("= Disappearance", b.disappearance) + row("&nbsp;&nbsp;of which exports", b.exports) +
-    row("&nbsp;&nbsp;of which implied domestic", b.implied_domestic_use) +
-    row("<strong>Stock/usage (annualised)</strong>", b.stock_usage_annualised_pct, "%") +
-    row("<strong>Stock cover</strong>", b.stock_cover_months_of_exports, " months of exports") +
-    `<div class="note">${b.note || ("Opening stock: " + b.opening_source)}</div>`;
-  production(); sim();
+  const t = (l, v, s) => `<div class="card lift"><div class="k">${l}</div><div style="font-size:24px;font-weight:700">${v}</div><div class="k">${s}</div></div>`;
+  $("#ptiles").innerHTML = t("Latest price", fmt(p.latest.value, 1), p.latest.date + " · RM/t") + t("Last month", pc(p.change_pct["1m"]), "3 months " + pc(p.change_pct["3m"])) +
+    t("Last 12 months", pc(p.change_pct["12m"]), "vs 12-month average " + pc(p.vs_12m_avg_pct)) + t("Volatility", p.vol_annualised_pct + "%", "annualised; higher = bumpier") + t("12-month range", fmt(p.low_12m, 0) + "–" + fmt(p.high_12m, 0), "RM per tonne");
+  const cols = [css("--mute"), css("--amber"), css("--accent"), css("--down")], yrs = Object.keys(p.monthly_by_year);
+  new Chart($("#seasChart"), { type: "line", data: { labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], datasets: yrs.map((y, i) => ({ label: y, borderColor: cols[i % 4], pointRadius: 2, data: [1,2,3,4,5,6,7,8,9,10,11,12].map(m => p.monthly_by_year[y][m] ?? null) })) }, options: { plugins: { legend: { position: "bottom" } } } });
+  const b = A.balance, bal = $("#bal");
+  if (b) { const row = (l, v, u = " t", d = 0) => `<div class="stat"><span>${l}</span><b>${typeof v === "number" ? fmt(v, d) : v}${u}</b></div>`;
+    bal.innerHTML = row("Stock at start of month", b.opening_stock) + row("+ Crude palm oil made", b.production) + row("+ Imports", b.imports) + row("− Stock at end of month", b.closing_stock) +
+      row("= Used (exports + home use)", b.disappearance) + row("&nbsp;&nbsp;exports", b.exports) + row("&nbsp;&nbsp;home use (implied)", b.implied_domestic_use) +
+      row("<strong>Stock/usage</strong>", b.stock_usage_annualised_pct, "%", 1) + row("<strong>Stock cover</strong>", b.stock_cover_months_of_exports, " months", 1); }
+  const pr = A.production;
+  if (pr && pr.latest) {
+    const ser = pr.series.slice(-24), band = k => ser.map(x => { const q = pr.band_by_month[+x.period.slice(5)]; return q ? q[k] : null; });
+    new Chart($("#prodChart"), { type: "line", data: { labels: ser.map(x => x.period), datasets: [
+      { label: "Usual range (middle half of earlier years)", data: band("p75"), borderColor: "transparent", backgroundColor: css("--line"), pointRadius: 0, fill: "+1" },
+      { label: "p25", data: band("p25"), borderColor: "transparent", pointRadius: 0 },
+      { label: "Production (t)", data: ser.map(x => x.value), borderColor: css("--accent"), pointRadius: 2 }] },
+      options: { plugins: { legend: { labels: { filter: i => i.text !== "p25" } } }, scales: { x: { ticks: { maxTicksLimit: 8 } } } } });
+    $("#prodNote").textContent = `${pr.latest.period}: ${fmt(pr.latest.value, 0)} t, ${pr.position || "no band"}` + (pr.vs_median_pct != null ? ` (${pc(pr.vs_median_pct)} vs the usual for the month)` : "") + (pr.yoy_pct != null ? `; ${pc(pr.yoy_pct)} on a year ago.` : ".");
+  }
+  const keys = [["Production", "bepi:cpo_production:production_of_crude_palm_oil:malaysia:tonnes", css("--accent")],
+    ["Exports", "bepi:export_monthly:monthly_export_of_oil_palm_products:palm_oil:tonnes", css("--info")],
+    ["Stocks", "bepi:stocks:monthly_closing_stock_of_oil_palm_products:crude_palm_oil:total_palm_oil:tonnes", css("--amber")]];
+  const sets = await Promise.all(keys.map(k => get(`/v1/series?key=${k[1]}&freq=monthly`)));
+  const labels = [...new Set(sets.flatMap(s => s.data.map(x => x.period)))].sort().slice(-60);
+  new Chart($("#tradeChart"), { type: "line", data: { labels, datasets: sets.map((s, i) => { const m = Object.fromEntries(s.data.map(x => [x.period, x.value / 1e6]));
+    return { label: keys[i][0], data: labels.map(l => m[l] ?? null), borderColor: keys[i][2], pointRadius: 0, tension: .25, spanGaps: false }; }) },
+    options: { plugins: { legend: { position: "bottom" } }, scales: { x: { ticks: { maxTicksLimit: 10 } }, y: { title: { display: true, text: "million tonnes" } } } } });
 }
 
-let prodChart;
-function production(){
-  const p = A.production, el = document.getElementById("prodnote");
-  if (!p || !p.latest) { el.textContent = "No production history yet."; return; }
-  const ser = p.series.slice(-24), css = getComputedStyle(document.documentElement);
-  const band = k => ser.map(x => { const b = p.band_by_month[+x.period.slice(5)]; return b ? b[k] : null; });
-  if (prodChart) prodChart.destroy();
-  prodChart = new Chart(document.getElementById("prodchart"), { type:"line",
-    data:{ labels: ser.map(x=>x.period), datasets:[
-      { label:"Prior-years p25\u2013p75", data:band("p75"), borderColor:"transparent", backgroundColor:css.getPropertyValue("--line"), pointRadius:0, fill:"+1" },
-      { label:"p25", data:band("p25"), borderColor:"transparent", pointRadius:0 },
-      { label:"CPO production (t)", data:ser.map(x=>x.value), borderColor:css.getPropertyValue("--accent"), pointRadius:2 } ] },
-    options:{ plugins:{ legend:{ labels:{ filter:i=>i.text!=="p25" } } }, scales:{ x:{ ticks:{ maxTicksLimit:8 } } } } });
-  el.textContent = `${p.latest.period}: ${fmt(p.latest.value)} t, ${p.position || "no band"}` +
-    (p.vs_median_pct != null ? ` (${pc(p.vs_median_pct)} vs median of prior years)` : "") +
-    (p.yoy_pct != null ? `, YoY ${pc(p.yoy_pct)}` : "") + ". Shaded band = p25\u2013p75 of the same month in up to 5 prior years.";
-  const real = A.states.filter(s => !["malaysia","p_malaysia","sabah_sarawak"].includes(s.state));
-  const max = Math.max(...real.map(s => s.value));
-  document.getElementById("states").innerHTML = A.states.map(s => {
-    const sub = ["malaysia","p_malaysia","sabah_sarawak"].includes(s.state);
-    return `<div class="stat" style="${sub?"font-weight:650":""}"><span>${nice(s.state)}</span><span>${fmt(s.value)} <span class="${s.yoy_pct>=0?"up":"down"} pct">${s.yoy_pct==null?"":pc(s.yoy_pct)}</span></span></div>` +
-      (sub ? "" : `<div style="height:4px;background:var(--accent);opacity:.5;width:${(s.value/max*100).toFixed(0)}%;margin-bottom:2px"></div>`);
-  }).join("") + `<div class="note">Period ${A.states[0].period}. YoY vs same month a year earlier.</div>`;
-}
-
+/* ---------------------------------------------------------------- regions */
 let GEO = null, mapMetric = "production";
-const MAPS = { production:"CPO production", oer:"Oil extraction rate", ffb:"FFB received" };
-const NAMES = { malaysia:"Malaysia", p_malaysia:"Peninsular Malaysia", sabah_sarawak:"Sabah + Sarawak", other_states:"Other states" };
-const nice = k => NAMES[k] || k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-function project(c){ return [ (c[0] - 99) / 21 * 640, (8 - c[1]) / 8 * 300 ]; }       // lon 99-120, lat 0-8
-function pathOf(geom){
-  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
-  return polys.map(p => p.map(r => "M" + r.map(c => project(c).map(n => n.toFixed(1)).join(",")).join("L") + "Z").join("")).join("");
+const MAPS = { production: "Production", oer: "Oil extraction rate", ffb: "FFB received", yield: "Fruit yield", area: "Planted area" };
+const project = c => [(c[0] - 99) / 21 * 640, (8 - c[1]) / 8 * 300];
+const pathOf = g => (g.type === "Polygon" ? [g.coordinates] : g.coordinates).map(p => p.map(r => "M" + r.map(c => project(c).map(n => n.toFixed(1)).join(",")).join("L") + "Z").join("")).join("");
+function ramp(t, div) {
+  if (!div) return `color-mix(in srgb, ${css("--accent")} ${Math.round(15 + t * 85)}%, ${css("--card")})`;
+  return t >= .5 ? `color-mix(in srgb, ${css("--up")} ${Math.round((t - .5) * 190)}%, ${css("--card")})` : `color-mix(in srgb, ${css("--down")} ${Math.round((.5 - t) * 190)}%, ${css("--card")})`;
 }
-function ramp(t, diverging){                                     // t in 0..1
-  const css = getComputedStyle(document.documentElement);
-  if (!diverging) return `color-mix(in srgb, ${css.getPropertyValue("--accent")} ${Math.round(15 + t * 85)}%, ${css.getPropertyValue("--card")})`;
-  return t >= .5 ? `color-mix(in srgb, ${css.getPropertyValue("--accent")} ${Math.round((t - .5) * 190)}%, ${css.getPropertyValue("--card")})`
-                 : `color-mix(in srgb, ${css.getPropertyValue("--bad")} ${Math.round((.5 - t) * 190)}%, ${css.getPropertyValue("--card")})`;
+async function initRegions() {
+  const tabs = $("#mapTabs");
+  Object.entries(MAPS).forEach(([k, l]) => { const b = el("button", k === mapMetric ? "on" : "", l); b.onclick = () => { mapMetric = k; $$("button", tabs).forEach(x => x.classList.toggle("on", x === b)); drawMap(); }; tabs.append(b); });
+  GEO = await get("/boundaries/my_states.geojson"); await drawMap();
 }
-async function drawMap(){
-  if (!GEO) GEO = await get("/boundaries/my_states.geojson");
-  let d;
-  try { d = await get("/v1/spatial?metric=" + mapMetric); }
-  catch (e) { document.getElementById("mapTitle").textContent = MAPS[mapMetric] + ": no data yet"; return; }
-  const by = Object.fromEntries(d.states.map(s => [s.state, s]));
-  const vals = d.states.filter(s => !s.aggregate).map(s => s.value), lo = Math.min(...vals), hi = Math.max(...vals);
-  const half = Math.max(...vals.map(v => Math.abs(v - d.national)));
-  document.getElementById("mapTitle").textContent = `${d.label} (${d.unit}), ${d.period}`;
-  document.getElementById("map").innerHTML = GEO.features.map(f => {
-    const k = f.properties.bepi.toLowerCase().replace(/ /g, "_"), s = by[k];
+async function drawMap() {
+  let d; try { d = await get("/v1/spatial?metric=" + mapMetric); } catch { $("#mapTitle").textContent = MAPS[mapMetric] + ": no data yet"; return; }
+  const by = Object.fromEntries(d.states.map(s => [s.state, s])), vals = d.states.filter(s => !s.aggregate).map(s => s.value);
+  const lo = Math.min(...vals), hi = Math.max(...vals), half = Math.max(...vals.map(v => Math.abs(v - d.national)));
+  $("#mapTitle").textContent = `${d.label} (${d.unit}), ${d.period}`;
+  $("#map").innerHTML = GEO.features.map(f => {
+    const s = by[f.properties.bepi.toLowerCase().replace(/ /g, "_")];
     const t = !s ? null : d.diverging ? .5 + (s.value - d.national) / (2 * half || 1) : (s.value - lo) / ((hi - lo) || 1);
-    const tip = s ? `${f.properties.bepi}: ${fmt(s.value)} ${d.unit}` + (s.yoy_pct != null ? `, YoY ${pc(s.yoy_pct)}` : "") : f.properties.bepi + ": no data";
-    return `<path d="${pathOf(f.geometry)}" fill="${t == null ? "var(--line)" : ramp(t, d.diverging)}" stroke="var(--ink)" stroke-width=".6" stroke-opacity=".5"><title>${tip}</title></path>`;
-  }).join("");
-  document.getElementById("legend").textContent = d.diverging
-    ? `Diverging around the national rate (${d.national.toFixed(2)}${d.unit}): green above, red below.`
-    : `Darker = higher (${fmt(lo)} to ${fmt(hi)} ${d.unit}).`;
-  const rows = d.states.slice().sort((a, b) => b.value - a.value);
-  document.getElementById("mapList").innerHTML = rows.map(s => {
-    const sub = s.aggregate;
-    const extra = d.diverging ? (s.vs_national == null ? "" : (s.vs_national > 0 ? "+" : "") + s.vs_national.toFixed(2) + " vs MY")
-                              : (s.share_pct == null ? "" : s.share_pct + "% of MY");
-    return `<div class="stat" style="${sub ? "font-weight:650" : ""}"><span>${nice(s.state)}</span><span>${fmt(s.value)}<span class="k"> ${extra}</span> <span class="${s.yoy_pct >= 0 ? "up" : "down"} pct">${s.yoy_pct == null ? "" : pc(s.yoy_pct)}</span></span></div>`;
-  }).join("");
+    const tip = s ? `${nice(f.properties.bepi.toLowerCase().replace(/ /g, "_"))}: ${fmt(s.value)} ${d.unit}` + (s.yoy_pct != null ? `, ${pc(s.yoy_pct)} vs a year ago` : "") : nice(f.properties.bepi.toLowerCase().replace(/ /g, "_")) + ": not reported separately";
+    return `<path d="${pathOf(f.geometry)}" fill="${t == null ? "var(--line)" : ramp(t, d.diverging)}" stroke="var(--ink)" stroke-width=".6" stroke-opacity=".5"><title>${tip}</title></path>`; }).join("");
+  $("#legend").textContent = d.diverging ? `Green is above the national figure (${fmt(d.national)} ${d.unit}), orange below.` : `Darker is higher (${fmt(lo, 0)} to ${fmt(hi, 0)} ${d.unit}).`;
+  const rows = d.states.slice().sort((a, b) => b.value - a.value), max = Math.max(...vals);
+  $("#mapList").innerHTML = rows.map(s => {
+    const extra = d.diverging ? (s.vs_national == null ? "" : (s.vs_national > 0 ? "+" : "") + s.vs_national.toFixed(2) + " vs MY") : (s.share_pct == null ? "" : s.share_pct + "% of MY");
+    return `<div class="stat" style="${s.aggregate ? "font-weight:700" : ""}"><span>${nice(s.state)}</span><span>${fmt(s.value)} <span class="k">${extra}</span> <span class="${dirCls(s.yoy_pct)} pct">${s.yoy_pct == null ? "" : arrow(s.yoy_pct) + " " + pc(s.yoy_pct)}</span></span></div>` +
+      (s.aggregate ? "" : `<div class="bar-h" style="width:${(s.value / max * 100).toFixed(0)}%"></div>`); }).join("");
 }
-function mapTabs(){
-  const el = document.getElementById("mapTabs");
-  el.innerHTML = Object.entries(MAPS).map(([k, l]) => `<button data-m="${k}" class="${k === mapMetric ? "on" : ""}">${l}</button>`).join("");
-  el.onclick = e => { if (e.target.dataset.m) { mapMetric = e.target.dataset.m; mapTabs(); drawMap(); } };
+
+/* ---------------------------------------------------------------- outlook */
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+function simModel(oni, lag, b50, a, stockNow, px) {
+  const lagF = clamp((lag - 3) / 9, 0, 1), loss = a.loss * Math.pow(oni, 1.3) * lagF, prod = a.base * (1 - loss / 100), use = a.use + a.b50 * b50 / 100;
+  const close = stockNow + prod - use, su = close / use * 100, su0 = (stockNow + a.base - a.use) / a.use * 100;
+  return { prod, use, close, su, su0, price: px * (1 + clamp(-a.px * (su - su0) / 100, -0.35, 0.35)) };
 }
-const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
-function simModel(oni, lag, b50, a, stockNow, px){
-  const lagF = clamp((lag - 3) / 9, 0, 1);                       // 12m = full effect, 6m ~ a third
-  const loss = a.loss * Math.pow(oni, 1.3) * lagF;                // % of base output
-  const prod = a.base * (1 - loss / 100);
-  const use = a.use + a.b50 * b50 / 100;
-  const close = stockNow + prod - use;
-  const su = close / use * 100;
-  const su0 = (stockNow + a.base - a.use) / a.use * 100;          // no El Niño, no B50
-  const price = px * (1 + clamp(-a.px * (su - su0) / 100, -0.35, 0.35));
-  return { loss, prod, use, close, su, su0, price };
+const PRESETS = { "La Niña": [0.2, 12, 0], "Normal": [1, 12, 0], "Strong El Niño": [2.2, 12, 0], "Strong + B50": [2.2, 12, 100] };
+async function initOutlook() {
+  if (!A) A = await get("/v1/analytics");
+  const seg = $("#presets");
+  Object.keys(PRESETS).forEach(n => { const b = el("button", "", n); b.onclick = () => { ["oni", "lag", "b50"].forEach((id, i) => $("#" + id).value = PRESETS[n][i]); sim(); }; seg.append(b); });
+  $$("#oni,#lag,#b50,#aBase,#aUse,#aLoss,#aB50,#aPx").forEach(i => i.addEventListener("input", sim)); sim();
 }
-function sim(){
+function sim() {
   if (!A || !A.balance) return;
-  const g = id => parseFloat(document.getElementById(id).value);
-  const oni = g("oni"), lag = g("lag"), b50 = g("b50");
-  document.getElementById("oniv").textContent = oni.toFixed(1);
-  document.getElementById("lagv").textContent = lag + "m";
-  document.getElementById("b50v").textContent = b50 + "%";
-  const a = { base:g("aBase"), use:g("aUse"), loss:g("aLoss"), b50:g("aB50"), px:g("aPx") };
-  const r = simModel(oni, lag, b50, a, A.balance.closing_stock / 1e6, A.price.latest.value);
-  const base = simModel(0, lag, 0, a, A.balance.closing_stock / 1e6, A.price.latest.value);
-  const row = (l,v) => `<div class="stat"><span>${l}</span><span>${v}</span></div>`;
-  document.getElementById("sim").innerHTML =
-    row("2027 production", r.prod.toFixed(2) + " Mt") + row("vs no-shock baseline", pc((r.prod / base.prod - 1) * 100)) +
-    row("Impact lands", "~" + new Date(Date.now() + lag * 30.4 * 864e5).toLocaleDateString("en-GB", {month:"short", year:"numeric"})) +
-    row("Usage", r.use.toFixed(2) + " Mt") + row("End stocks", r.close.toFixed(2) + " Mt") +
-    row("Stock/usage", r.su.toFixed(1) + "% (baseline " + r.su0.toFixed(1) + "%)") +
-    row("<strong>Indicative CPO price</strong>", fmt(r.price) + " MYR/t");
-  document.getElementById("simnote").textContent =
-    "Starts from the real latest stock and price. Loss, usage, B50 demand and price sensitivity are assumptions you can change; none is calibrated to MPOB data.";
+  const g = id => parseFloat($("#" + id).value);
+  $("#oniv").textContent = g("oni").toFixed(1); $("#lagv").textContent = g("lag") + "m"; $("#b50v").textContent = g("b50") + "%";
+  const a = { base: g("aBase"), use: g("aUse"), loss: g("aLoss"), b50: g("aB50"), px: g("aPx") }, stock = A.balance.closing_stock / 1e6, px = A.price.latest.value;
+  const r = simModel(g("oni"), g("lag"), g("b50"), a, stock, px), base = simModel(0, g("lag"), 0, a, stock, px);
+  $("#simPrice").textContent = fmt(r.price, 0);
+  const row = (l, v) => `<div class="stat"><span>${l}</span><b>${v}</b></div>`;
+  $("#sim").innerHTML = row("Next year’s output", r.prod.toFixed(2) + " Mt") + row("vs a normal year", pc((r.prod / base.prod - 1) * 100)) +
+    row("Hit lands around", new Date(Date.now() + g("lag") * 30.4 * 864e5).toLocaleDateString("en-GB", { month: "short", year: "numeric" })) +
+    row("Use (home + exports)", r.use.toFixed(2) + " Mt") + row("Stocks at the end", r.close.toFixed(2) + " Mt") + row("Stock/usage", r.su.toFixed(1) + "% (normal " + r.su0.toFixed(1) + "%)");
+  $("#simnote").textContent = "Starts from the real latest stock and price. Loss, usage, B50 demand and price sensitivity are assumptions, not calibrated to MPOB data. Not a forecast.";
 }
-const PRESETS = { "La Niña":[0.2,12,0], "Base":[1,12,0], "Strong El Niño":[2.2,12,0], "Strong + B50":[2.2,12,100] };
-function presets(){
-  const el = document.getElementById("presets");
-  el.innerHTML = Object.keys(PRESETS).map(n=>`<button>${n}</button>`).join("");
-  el.onclick = e => { const v = PRESETS[e.target.textContent]; if(!v) return;
-    ["oni","lag","b50"].forEach((id,i)=>document.getElementById(id).value = v[i]); sim(); };
-  document.querySelectorAll("#oni,#lag,#b50,#aBase,#aUse,#aLoss,#aB50,#aPx").forEach(i=>i.addEventListener("input", sim));
+
+/* ---------------------------------------------------------------- data & methods */
+const DATASETS = { "bepi:cpo_production": "Crude palm oil production by state", "bepi:export_monthly": "Exports by product, tonnes and RM", "bepi:export_ports": "Exports by port",
+  "bepi:oer": "Oil extraction rate by state", "bepi:refinery_stocks": "Refinery stocks", "bepi:sectoral": "Fruit received by mills", "bepi:seeds": "Germinated seed supply and demand",
+  "bepi:stocks": "Closing stocks", "bepi:yield": "Fruit and oil yield (estates)", "bepi:area": "Planted area (annual)", "dosm:ipi": "Industrial production index (DOSM, cross-check)",
+  "mpob:cpo_daily": "Daily crude palm oil price", "mpob:headline": "Monthly headline scoreboard" };
+async function initData() {
+  const [f, iss] = await Promise.all([get("/v1/freshness"), get("/v1/issues")]);
+  const tb = $("#fresh tbody");
+  f.forEach(x => { const tr = el("tr"); [DATASETS[x.series_key] || x.series_key, x.series_key, `${String(x.first_period).slice(0, 7)} → ${String(x.last_period).slice(0, 7)}`, x.n_series || 1].forEach((t, i) => { const td = el("td", "", t); if (i === 1) td.className = "k"; tr.append(td); });
+    const s = el("td", x.state, x.state === "FRESH" ? "● Fresh" : x.state === "DUE" ? "● Due soon" : "● Stale"); tr.append(s); tb.append(tr); });
+  const box = $("#issues"); box.replaceChildren();
+  iss.forEach(i => { const d = el("details", "issue"); const s = el("summary", "", `${i.n}. ${i.title}`);
+    d.append(s, el("p", "", i.issue)); d.append(el("p", "", "What it means for you: " + i.effect)); const w = el("span", "tag", i.where); w.style.marginLeft = "8px"; s.append(w); box.append(d); });
+  $("#glossFull").replaceChildren(...GLOSSARY.map(([t, d]) => { const r = el("div", "stat"); r.append(el("b", "", t), el("span", "", d)); r.style.flexDirection = "column"; return r; }));
 }
-tabs(); presets(); mapTabs();
-Promise.all([kpis(), draw(), fresh(), analytics(), drawMap()]).catch(e => document.getElementById("asof").textContent = "Failed to load: " + e.message);
+
+/* ---------------------------------------------------------------- start */
+setPlain(store.get("plain") === "1");
+showTab(location.hash.slice(1) || "overview", false);
 </script>
 </body>
 </html>

@@ -72,12 +72,24 @@ def parse_yield_text(text: str) -> pd.DataFrame:
             continue
         if months:
             parsed = _split_row(lines[i])
-            if parsed and len(parsed[1]) == 2 * len(months) + 2 and not lines[i].upper().startswith("NOTE"):
+            nm, exp = len(months), 2 * len(months) + 2
+            if parsed and exp - nm <= len(parsed[1]) <= exp and not lines[i].upper().startswith("NOTE"):
                 label, vals = norm_label(parsed[0]), parsed[1]
-                for k in range(len(months)):
+                body = vals[:-2]                          # last two numbers are the period totals
+                miss = 2 * nm - len(body)
+                # months MPOB has not published yet are blank for the later year and the text collapses the gaps,
+                # so put the values back into their slots: only the later year's last `miss` months are empty
+                slots = []
+                for k in range(nm):
+                    later = 0 if years[2 * k] > years[2 * k + 1] else 1
                     for j in range(2):
+                        slots.append(None if (k >= nm - miss and j == later) else (k, j))
+                it = iter(body)
+                for slot in slots:
+                    if slot is not None:
+                        k, j = slot
                         rows.append(dict(section="", label=label, unit=unit, year=years[2 * k + j],
-                                         month=months[k], value=vals[2 * k + j]))
+                                         month=months[k], value=next(it)))
         i += 1
     if not rows:
         raise ValueError("no yield rows parsed")
