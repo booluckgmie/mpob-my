@@ -50,7 +50,7 @@ def one_pass(mode: str, n: int) -> list[dict]:
     if mode == "daily":     # core reports, current year only: ~6 requests, catches the monthly release day
         steps.append(("bepi_p0", lambda: bepi_reports.sync(bepi_reports.P0, y)))
     else:                   # weekly/monthly refinement: every family, wider window, flags revisions
-        fams = [f["id"] for f in __import__("crawl").CFG["families"]]
+        fams = [f["id"] for f in __import__("crawl").CFG["families"] if f["id"] not in bepi_reports.UNSUPPORTED]
         steps.append(("bepi_all", lambda: bepi_reports.sync(fams, y - (1 if mode == "weekly" else 3))))
         steps.append(("dosm", dosm_ingest.run))
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")

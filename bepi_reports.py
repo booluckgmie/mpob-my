@@ -28,6 +28,15 @@ UNITS = {"TONNES": "tonnes", "RM MIL": "MYR_mil", "RM MILLION": "MYR_mil", "HECT
 AGG = {"stocks": "last", "refinery_stocks": "last", "oer": "avg", "yield": "avg", "prices_weekly": "avg",
        "area": "last", "seeds": "sum"}
 P0 = ["export_monthly", "stocks", "cpo_production"]
+# families whose reports are not parsed correctly yet (never loaded: bad data is worse than none)
+UNSUPPORTED = {"summary_annual": "labels embed previous-period values; layout not parsed"}
+
+
+UNSUPPORTED_TABLES = {"sales_own_use_and_closing_stock_of_oil_palm_seedlings"}   # leading number lands in the label
+
+
+class NoData(Exception):
+    """The source page itself says it has no data (not a parsing failure)."""
 
 
 def slug(s: str) -> str:
@@ -111,6 +120,8 @@ def parse_report(html: str) -> tuple[str, pd.DataFrame]:
     """Return (title, long df[section,label,unit,year,month,value]). Raises on unknown shape."""
     soup = BeautifulSoup(html, "html.parser")
     title = " ".join(soup.get_text(" ", strip=True).split())[:120]
+    if re.search(r"currently, this information is being updated", title, re.I):
+        raise NoData("source reports: information is being updated")
     rows_out: list[dict] = []
     tables = soup.find_all("table")
     for t in tables:
@@ -204,11 +215,14 @@ def report_urls(article_url: str) -> list[str]:
 def sync(families: list[str], since: int, con=None) -> dict:
     own = con is None
     con = con or common.connect()
+    families = [f for f in families if f not in UNSUPPORTED]
     rows = [r for r in crawl.harvest() if r["family"] in families and r["year"] and r["year"] >= since and not r["is_file"]]
     stats = {"inserted": 0, "revised": 0, "unchanged": 0, "failed": 0, "reports": 0}
     seen_urls: set[str] = set()
     for r in sorted(rows, key=lambda r: (r["family"], r["year"])):
         table = slug(re.sub(r"\b(19|20)\d\d\b", "", r["title"]))
+        if table in UNSUPPORTED_TABLES:
+            continue
         try:
             for url in report_urls(r["url"]):
                 if url in seen_urls:
@@ -230,6 +244,9 @@ def sync(families: list[str], since: int, con=None) -> dict:
                     stats[k] += s[k]
                 stats["reports"] += 1
                 print(f"{r['family']} {r['year']}: {len(df)} values, {s}")
+        except NoData as e:
+            stats["no_data"] = stats.get("no_data", 0) + 1
+            print(f"NO DATA {r['family']} {r['year']}: {e}", file=sys.stderr)
         except Exception as e:                  # quarantine: one bad report must not block the rest
             stats["failed"] += 1
             print(f"FAILED {r['family']} {r['year']} ({r['url']}): {e}", file=sys.stderr)

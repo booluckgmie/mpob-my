@@ -86,7 +86,7 @@
       <div class="note" id="simnote"></div></div>
   </div>
   <div class="card"><strong>Data freshness</strong>
-    <table id="fresh"><thead><tr><th>Series</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
+    <table id="fresh"><thead><tr><th>Dataset</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
     <div class="note">Weekly/monthly/quarterly prices are derived averages of daily prices; quarterly rolls up from monthly. Daily prices exclude PH/NT days.</div>
   </div>
 </main>
@@ -139,7 +139,7 @@ function tabs(){
 async function fresh(){
   const rows = (await get("/v1/freshness")).filter(r => !r.series_key.endsWith(":pct_change"));
   document.querySelector("#fresh tbody").innerHTML = rows.map(r =>
-    `<tr><td>${r.series_key}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
+    `<tr><td>${r.series_key}${r.n_series > 1 ? ` <span class="k">(${r.n_series} series)</span>` : ""}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
 }
 
 
@@ -184,7 +184,7 @@ function production(){
   if (prodChart) prodChart.destroy();
   prodChart = new Chart(document.getElementById("prodchart"), { type:"line",
     data:{ labels: ser.map(x=>x.period), datasets:[
-      { label:"p75", data:band("p75"), borderColor:"transparent", backgroundColor:css.getPropertyValue("--line"), pointRadius:0, fill:"+1" },
+      { label:"Prior-years p25\u2013p75", data:band("p75"), borderColor:"transparent", backgroundColor:css.getPropertyValue("--line"), pointRadius:0, fill:"+1" },
       { label:"p25", data:band("p25"), borderColor:"transparent", pointRadius:0 },
       { label:"CPO production (t)", data:ser.map(x=>x.value), borderColor:css.getPropertyValue("--accent"), pointRadius:2 } ] },
     options:{ plugins:{ legend:{ labels:{ filter:i=>i.text!=="p25" } } }, scales:{ x:{ ticks:{ maxTicksLimit:8 } } } } });
@@ -195,13 +195,15 @@ function production(){
   const max = Math.max(...real.map(s => s.value));
   document.getElementById("states").innerHTML = A.states.map(s => {
     const sub = ["malaysia","p_malaysia","sabah_sarawak"].includes(s.state);
-    return `<div class="stat" style="${sub?"font-weight:650":""}"><span>${s.state.replace(/_/g," ")}</span><span>${fmt(s.value)} <span class="${s.yoy_pct>=0?"up":"down"} pct">${s.yoy_pct==null?"":pc(s.yoy_pct)}</span></span></div>` +
+    return `<div class="stat" style="${sub?"font-weight:650":""}"><span>${nice(s.state)}</span><span>${fmt(s.value)} <span class="${s.yoy_pct>=0?"up":"down"} pct">${s.yoy_pct==null?"":pc(s.yoy_pct)}</span></span></div>` +
       (sub ? "" : `<div style="height:4px;background:var(--accent);opacity:.5;width:${(s.value/max*100).toFixed(0)}%;margin-bottom:2px"></div>`);
   }).join("") + `<div class="note">Period ${A.states[0].period}. YoY vs same month a year earlier.</div>`;
 }
 
 let GEO = null, mapMetric = "production";
 const MAPS = { production:"CPO production", oer:"Oil extraction rate", ffb:"FFB received" };
+const NAMES = { malaysia:"Malaysia", p_malaysia:"Peninsular Malaysia", sabah_sarawak:"Sabah + Sarawak", other_states:"Other states" };
+const nice = k => NAMES[k] || k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 function project(c){ return [ (c[0] - 99) / 21 * 640, (8 - c[1]) / 8 * 300 ]; }       // lon 99-120, lat 0-8
 function pathOf(geom){
   const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
@@ -236,7 +238,7 @@ async function drawMap(){
     const sub = s.aggregate;
     const extra = d.diverging ? (s.vs_national == null ? "" : (s.vs_national > 0 ? "+" : "") + s.vs_national.toFixed(2) + " vs MY")
                               : (s.share_pct == null ? "" : s.share_pct + "% of MY");
-    return `<div class="stat" style="${sub ? "font-weight:650" : ""}"><span>${s.state.replace(/_/g, " ")}</span><span>${fmt(s.value)}<span class="k"> ${extra}</span> <span class="${s.yoy_pct >= 0 ? "up" : "down"} pct">${s.yoy_pct == null ? "" : pc(s.yoy_pct)}</span></span></div>`;
+    return `<div class="stat" style="${sub ? "font-weight:650" : ""}"><span>${nice(s.state)}</span><span>${fmt(s.value)}<span class="k"> ${extra}</span> <span class="${s.yoy_pct >= 0 ? "up" : "down"} pct">${s.yoy_pct == null ? "" : pc(s.yoy_pct)}</span></span></div>`;
   }).join("");
 }
 function mapTabs(){

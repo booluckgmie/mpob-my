@@ -181,21 +181,38 @@ def boundaries():
     return FileResponse(Path(__file__).parent / "dashboard" / "my_states.geojson", media_type="application/geo+json")
 
 
+def _family(key: str) -> str:
+    p = key.split(":")
+    return f"{p[0]}:{p[1]}" if p[0] == "bepi" else (f"{p[0]}:{p[1]}" if p[0] in ("mpob", "dosm") else key)
+
+
 @app.get("/v1/freshness")
-def freshness():
-    """FRESH / DUE / STALE per series by days since its newest period_end."""
+def freshness(detail: bool = False):
+    """FRESH / DUE / STALE per dataset family (newest period across its series); detail=true lists every series."""
     con = db()
     try:
         today = date.today()
+        rows = _rows(con, "SELECT series_key, dataset, native_freq, last_period, last_ingested FROM v_coverage")
+        if not detail:
+            fam = {}
+            for r in rows:
+                if r["series_key"].endswith(":pct_change"):
+                    continue
+                k = _family(r["series_key"])
+                cur = fam.get(k)
+                if cur is None or r["last_period"] > cur["last_period"]:
+                    fam[k] = {**r, "series_key": k, "n_series": 0}
+                fam[k]["n_series"] = (cur["n_series"] if cur else 0) + 1
+            rows = list(fam.values())
         out = []
-        for r in _rows(con, "SELECT series_key, dataset, native_freq, last_period, last_ingested FROM v_coverage"):
+        for r in rows:
             age = (today - r["last_period"]).days
             f = r["native_freq"]
             extra = LAG_EXTRA.get(r["dataset"], 0)
             state = ("STALE" if age > STALE_AFTER[f] + extra
                      else "DUE" if age > DUE_AFTER[f] + extra else "FRESH")
             out.append({**r, "days_old": age, "state": state})
-        return out
+        return sorted(out, key=lambda r: r["series_key"])
     finally:
         con.close()
 
