@@ -256,7 +256,7 @@ def issues():
             title = title.rstrip(".")
             if title.endswith(":"):                      # "Not loaded:" is not a title on its own
                 title = title.rstrip(":") + " (see details)"
-            out.append({"n": int(cells[0]), "title": clean(title), "issue": clean(f"{title} {detail}" if m else cells[1]),
+            out.append({"n": int(cells[0]), "title": clean(title), "issue": clean(detail) if (m and detail) else clean(cells[1]),
                         "where": clean(cells[2]), "effect": clean(" | ".join(cells[3:]))})
     return out
 
