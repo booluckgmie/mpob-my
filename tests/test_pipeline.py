@@ -203,3 +203,25 @@ def test_spatial_endpoint_shares_yoy_and_boundaries(tmp_path, monkeypatch):
     assert by["malaysia"]["aggregate"] and t.get("/v1/spatial?metric=oer").status_code == 404
     g = t.get("/boundaries/my_states.geojson").json()
     assert {f["properties"]["bepi"] for f in g["features"]} >= {"JOHOR", "SABAH", "OTHER STATES"}
+
+
+def test_pdf_yield_and_area_parse_real_extracts():
+    import pdf_reports
+    y, annual = pdf_reports.parse_pdf_text((FX / "yield_ffb_2025.txt").read_text())
+    assert not annual and set(y.year) == {2024, 2025} and y.month.nunique() == 12
+    my = y[(y.label == "MALAYSIA") & (y.year == 2025)].set_index("month")["value"]
+    assert my[1] == 1.15 and abs(my.sum() - 17.77) < 0.05           # monthly yields add up to the printed annual figure
+    a, annual = pdf_reports.parse_pdf_text((FX / "area_2025.txt").read_text())
+    assert annual and set(a.year) == {2025}
+    tot = a[a.section == "total"].set_index("label")["value"]
+    states = tot.drop(["MALAYSIA", "PENINSULAR MALAYSIA", "SABAH & SARAWAK"])
+    assert tot["MALAYSIA"] == 5700050 and states.sum() == tot["MALAYSIA"]
+    assert "NEGERI SEMBILAN" in tot.index                              # spaces survive extraction
+
+
+def test_annual_obs_use_year_granularity(con):
+    import bepi_reports, pdf_reports
+    a, annual = pdf_reports.parse_pdf_text((FX / "area_2025.txt").read_text())
+    obs, series = bepi_reports.to_obs("area", a, "test", "planted_area", annual)
+    assert set(obs.granularity) == {"y"} and str(obs.period_start.iloc[0]) == "2025-01-01"
+    assert {s["native_freq"] for s in series} == {"annual"}
