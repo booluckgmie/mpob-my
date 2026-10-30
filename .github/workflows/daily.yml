@@ -1,13 +1,22 @@
-name: daily-sync
+name: refresh
 on:
   schedule:
-    - cron: "0 7 * * *"      # 15:00 MYT, ~2.5h after the 12:30 MPOB release window
+    - cron: "30 7 * * *"     # daily  15:30 MYT
+    - cron: "30 10 * * *"    # daily  18:30 MYT (second check, after the afternoon price update)
+    - cron: "0 9 * * 1"      # weekly refinement, Mondays
+    - cron: "0 8 13 * *"     # monthly refinement, 13th (MPOB release slips past the 10th)
   workflow_dispatch:
+    inputs:
+      mode:
+        description: daily | weekly | monthly
+        default: daily
   push:
     paths: ["**.py", "schema.sql", "tests/**"]
 
+concurrency: { group: refresh, cancel-in-progress: false }
+
 jobs:
-  sync:
+  refresh:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,19 +28,23 @@ jobs:
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
-      - name: Ingest
-        if: github.event_name != 'push'
+      - name: Pick mode
+        id: mode
         run: |
-          python price_daily.py --sync
-          python ticker.py
-          python dosm_ingest.py
-      - name: Reconcile (non-zero exit = needs attention)
-        if: github.event_name != 'push'
-        run: python reconcile.py --run
-        continue-on-error: true
+          case "${{ github.event.schedule }}" in
+            "0 9 * * 1") m=weekly ;;
+            "0 8 13 * *") m=monthly ;;
+            "") m="${{ github.event.inputs.mode }}" ;;
+            *) m=daily ;;
+          esac
+          [ "${{ github.event_name }}" = push ] && m=skip
+          echo "mode=${m:-daily}" >> "$GITHUB_OUTPUT"
+      - name: Refresh (two passes; non-zero exit = needs attention)
+        if: steps.mode.outputs.mode != 'skip'
+        run: python refresh.py ${{ steps.mode.outputs.mode }}
       - name: Commit lake
-        if: github.event_name != 'push'
+        if: always() && steps.mode.outputs.mode != 'skip'
         run: |
           git config user.name "mpob-bot"; git config user.email "mpob-bot@users.noreply.github.com"
           git add data/lake
-          git diff --cached --quiet || (git commit -m "data: daily sync $(date -u +%F)" && git push)
+          git diff --cached --quiet || (git commit -m "data: ${{ steps.mode.outputs.mode }} refresh $(date -u +%F)" && git pull --rebase -q && git push)

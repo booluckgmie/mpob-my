@@ -1,0 +1,5 @@
+run_at,mode,pass,step,inserted,revised,unchanged,ok,note
+2026-10-30T06:19:17+00:00,daily,1,price_daily,0,0,667,True,
+2026-10-30T06:19:17+00:00,daily,1,ticker,0,0,16,True,
+2026-10-30T06:19:29+00:00,daily,2,price_daily,0,0,667,True,
+2026-10-30T06:19:29+00:00,daily,2,ticker,0,0,16,True,

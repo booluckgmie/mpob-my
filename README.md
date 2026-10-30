@@ -53,4 +53,14 @@ PH (public holiday) and NT (no trade) days are stored as NULL-value rows and exc
 
 BEPI lists data purchase rates ("Caj Data"). Internal analysis is one thing; check with MPOB before redistributing.
 
-The daily workflow (`.github/workflows/daily.yml`) only runs once it is on the default branch.
+## Schedule (`.github/workflows/daily.yml`, runs once on the default branch)
+
+| Mode | When (UTC) | What |
+|---|---|---|
+| daily | 07:30 and 10:30 | prices (this + last year) + headline, then a **second verification pass**: any new or changed value between passes is flagged |
+| weekly | Mon 09:00 | re-pull every price year BEPI exposes + headline + DOSM; flags revisions to published figures |
+| monthly | 13th 08:00 | weekly + BEPI file inventory + MPOB/DOSM reconcile |
+
+Run locally with `python refresh.py daily|weekly|monthly`. Each pass is logged to
+`data/lake/gold/run_log.csv`; exit code 1 means something needs attention (failed source, unstable
+data between passes, or a revision of published history). Add a `MPOB_CONTACT` repo secret.
