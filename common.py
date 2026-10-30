@@ -17,8 +17,11 @@ RAW = DATA / "raw"
 SILVER = DATA / "lake" / "silver"
 GOLD = DATA / "lake" / "gold"
 DB_PATH = DATA / "mpob.duckdb"
-for _d in (RAW, SILVER, GOLD):
-    _d.mkdir(parents=True, exist_ok=True)
+try:
+    for _d in (RAW, SILVER, GOLD):
+        _d.mkdir(parents=True, exist_ok=True)
+except OSError:                 # read-only deploy (e.g. Vercel): serve from the committed lake
+    DB_PATH = Path(os.environ.get("TMPDIR", "/tmp")) / "mpob.duckdb"
 
 CONTACT = os.environ.get("MPOB_CONTACT", "set-MPOB_CONTACT-env-var")
 HEADERS = {"User-Agent": f"mpob-my-pipeline/1.0 (research; contact: {CONTACT})"}

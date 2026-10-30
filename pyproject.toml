@@ -1,0 +1,9 @@
+[project]
+name = "mpob-my"
+version = "1.0.0"
+requires-python = ">=3.11"
+# Runtime deps of the read API only (ingest scripts need requirements.txt).
+dependencies = ["fastapi>=0.110", "duckdb>=1.0", "pandas>=2.1", "requests>=2.31"]
+
+[tool.vercel]
+entrypoint = "api:app"
