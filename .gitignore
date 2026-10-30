@@ -1,0 +1,5 @@
+data/raw/
+data/mpob.duckdb*
+data/manifest.csv
+__pycache__/
+.pytest_cache/

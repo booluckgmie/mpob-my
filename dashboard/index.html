@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MPOB-MY Dashboard</title>
+<style>
+  :root { --bg:#f6f7f4; --card:#fff; --ink:#1c2a1f; --mute:#667064; --line:#dfe4da;
+          --accent:#2f7d4f; --warn:#b7791f; --bad:#b83a3a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+          --bg:#121712; --card:#1b231c; --ink:#e6ece4; --mute:#93a091; --line:#2b362d;
+          --accent:#5fbf86; --warn:#e0a84a; --bad:#e26d6d; } }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui,sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
+  h1 { font-size:20px; margin:0 0 2px } .sub { color:var(--mute); margin:0 0 18px; font-size:13px }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin-bottom:16px }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px }
+  .k { color:var(--mute); font-size:12px } .v { font-size:22px; font-weight:650; margin-top:2px }
+  .pct { font-size:12px } .up{color:var(--accent)} .down{color:var(--bad)}
+  .chartcard { margin-bottom:16px } .bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px }
+  .tabs button { background:none; border:1px solid var(--line); color:var(--ink); padding:4px 10px; border-radius:6px; cursor:pointer; margin-left:4px }
+  .tabs button.on { background:var(--accent); color:#fff; border-color:var(--accent) }
+  canvas { max-height:340px }
+  table { width:100%; border-collapse:collapse; font-size:13px } td,th { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line) }
+  .FRESH{color:var(--accent)} .DUE{color:var(--warn)} .STALE{color:var(--bad)} .note { color:var(--mute); font-size:12px; margin-top:8px }
+</style>
+</head>
+<body>
+<main>
+  <h1>Malaysian palm oil &mdash; single source of truth</h1>
+  <p class="sub" id="asof">loading&hellip;</p>
+  <div class="grid" id="kpis"></div>
+  <div class="card chartcard">
+    <div class="bar"><strong>Local CPO price (MYR/t)</strong>
+      <span class="tabs" id="tabs"></span></div>
+    <canvas id="chart" role="img" aria-label="CPO price chart"></canvas>
+    <div class="note" id="chartnote"></div>
+  </div>
+  <div class="card"><strong>Data freshness</strong>
+    <table id="fresh"><thead><tr><th>Series</th><th>Latest period</th><th>Age (days)</th><th>State</th></tr></thead><tbody></tbody></table>
+    <div class="note">Weekly/monthly/quarterly prices are derived averages of daily prices; quarterly rolls up from monthly. Daily prices exclude PH/NT days.</div>
+  </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const FREQS = ["daily","weekly","monthly","quarterly"];
+const fmt = n => n == null ? "–" : Number(n).toLocaleString("en-MY", {maximumFractionDigits: 2});
+const KPI = {cpo_production:"CPO production", cpo_stock:"CPO stock", po_stock:"Palm oil stock",
+             po_export:"Palm oil export", po_import:"Palm oil import", ffb_price:"FFB price @1% OER"};
+let chart, freq = "monthly";
+
+async function get(u){ const r = await fetch(u); if(!r.ok) throw new Error(u+" "+r.status); return r.json(); }
+
+async function kpis(){
+  const rows = await get("/v1/headline/latest");
+  const pct = Object.fromEntries((await get("/v1/series/list")).map(s=>[s.series_key,1]));
+  const el = document.getElementById("kpis"); el.innerHTML = "";
+  let period = "";
+  for (const [id,label] of Object.entries(KPI)) {
+    const r = rows.find(x => x.series_key === "mpob:headline:"+id); if(!r) continue;
+    period = r.period;
+    el.insertAdjacentHTML("beforeend",
+      `<div class="card"><div class="k">${label}</div><div class="v">${fmt(r.value)}</div><div class="k">${r.unit}</div></div>`);
+  }
+  document.getElementById("asof").textContent = period ? `MPOB headline data as of ${period} (monthly, released ~10th)` : "no headline data";
+}
+
+async function draw(){
+  const d = await get(`/v1/series?key=mpob:cpo_daily&freq=${freq}`);
+  const data = freq === "daily" ? d.data.slice(-260) : d.data;
+  const labels = data.map(x => x.period), vals = data.map(x => x.value);
+  if (chart) chart.destroy();
+  const css = getComputedStyle(document.documentElement);
+  chart = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: { labels, datasets: [{ label: "CPO MYR/t", data: vals, borderColor: css.getPropertyValue("--accent"),
+            pointRadius: freq==="daily"?0:2, tension: .2, spanGaps: true }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 10 } } } }
+  });
+  document.getElementById("chartnote").textContent =
+    freq === "daily" ? "Actual daily prices (last ~260 rows)." : "Derived averages (status = derived).";
+}
+
+function tabs(){
+  const el = document.getElementById("tabs");
+  el.innerHTML = FREQS.map(f=>`<button data-f="${f}" class="${f===freq?"on":""}">${f}</button>`).join("");
+  el.onclick = e => { if(e.target.dataset.f){ freq = e.target.dataset.f; tabs(); draw(); } };
+}
+
+async function fresh(){
+  const rows = (await get("/v1/freshness")).filter(r => !r.series_key.endsWith(":pct_change"));
+  document.querySelector("#fresh tbody").innerHTML = rows.map(r =>
+    `<tr><td>${r.series_key}</td><td>${String(r.last_period).slice(0,10)}</td><td>${r.days_old}</td><td class="${r.state}">${r.state}</td></tr>`).join("");
+}
+
+tabs();
+Promise.all([kpis(), draw(), fresh()]).catch(e => document.getElementById("asof").textContent = "Failed to load: " + e.message);
+</script>
+</body>
+</html>
