@@ -147,6 +147,7 @@ def parse_report(html: str) -> tuple[str, pd.DataFrame]:
                 raise ValueError("wide report without a year in the title")
             year = int(ym.group(0))
         section, product = "", ""
+        seen_labels: dict[str, int] = {}
         start = hdr + (2 if paired else 1)
         for tr, r in zip(trs[start:], cells[start:]):
             if not r or not any(r):
@@ -169,9 +170,13 @@ def parse_report(html: str) -> tuple[str, pd.DataFrame]:
                 if len(lead) >= 2:
                     product, unit = lead[0], UNITS.get(lead[1].upper(), slug(lead[1]))
                     label = product
-                else:
-                    unit = UNITS.get(lead[0].upper(), slug(lead[0]))
-                    label = product
+                elif product and lead[0].upper() in UNITS:                 # "RM Mil" row under a product
+                    unit, label = UNITS[lead[0].upper()], product
+                else:                                                       # one label per row (e.g. a port, a country)
+                    product, label, unit = lead[0], lead[0], unit_default
+                    seen_labels[label] = seen_labels.get(label, 0) + 1
+                    if seen_labels[label] > 1:                              # same label twice (e.g. "OTHERS" per region)
+                        label = f"{label} #{seen_labels[label]}"
             for i in range(nm):
                 if paired:
                     for j in range(2):
@@ -190,8 +195,14 @@ def parse_report(html: str) -> tuple[str, pd.DataFrame]:
     return title, df
 
 
+# Labels whose meaning the report only gives by position. In the ports report the first OTHERS belongs to
+# Peninsular Malaysia and the second to Sabah/Sarawak (each sums with its region's ports to the subtotal).
+RENAMES = {"export_ports": {"OTHERS": "OTHERS (P. MALAYSIA)", "OTHERS #2": "OTHERS (SABAH/SARAWAK)", "PEN. MALAYSIA": "P. MALAYSIA"}}
+
+
 def to_obs(family: str, df: pd.DataFrame, source: str, table: str = "", annual: bool = False) -> tuple[pd.DataFrame, list[dict]]:
     d = df.copy()
+    d["label"] = d["label"].replace(RENAMES.get(family, {}))
     d["series_key"] = ("bepi:" + family + ":" + table + ":" + d["section"].map(slug) + ":" + d["label"].map(slug) + ":" + d["unit"].map(slug)
                        ).str.replace(r":{2,}", ":", regex=True)
     if annual:                                        # point-in-time annual figures (e.g. planted area at December)
@@ -267,6 +278,8 @@ def rebuild(con=None) -> dict:
     stats = {"inserted": 0, "revised": 0, "unchanged": 0, "failed": 0, "reports": 0}
     for meta_f in sorted((common.RAW / "bepi").glob("*.json")):
         m = json.loads(meta_f.read_text())
+        if m["family"] in UNSUPPORTED or m.get("table") in UNSUPPORTED_TABLES:
+            continue
         try:
             if m.get("kind") == "pdf":
                 import pdf_reports
@@ -278,6 +291,8 @@ def rebuild(con=None) -> dict:
             for k, v in common.upsert_obs(con, obs).items():
                 stats[k] += v
             stats["reports"] += 1
+        except NoData:
+            stats["no_data"] = stats.get("no_data", 0) + 1
         except Exception as e:
             stats["failed"] += 1
             print(f"FAILED {meta_f.name}: {e}", file=sys.stderr)
