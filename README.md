@@ -52,6 +52,8 @@ Each saved report has a JSON sidecar so `--rebuild` can re-parse offline.
 | Monthly exports by product (tonnes and RM) | 2014-2026 |
 | Exports by port, FFB received (sectoral), OER (CPO and kernel oil) by state | 2012/2013-2026 |
 | Closing stocks, refinery stocks | 2021-2026 (BEPI publishes no earlier) |
+| Exports by port (each region's ports plus its "others" sum to the subtotal) | 2014-2026 monthly |
+| Exports by destination country (palm oil, palm kernel oil) | **none**: BEPI lists the reports for 2014-2018 but every one says "information is being updated" |
 | Germinated seed supply/demand | 2013-2026 |
 | FFB and CPO yield by state (PDF, estates only, t/ha) | 2019-2026 monthly |
 | Planted area by state (PDF, matured/immature/total ha) | annual, 2011-2018 and 2023-2025 (2011: by region only) |
@@ -112,6 +114,8 @@ Read these before using the numbers. "Source" means the issue is in what MPOB / 
 | 19 | **Release timing slips.** MPOB's nominal 10th often becomes the next working day; freshness thresholds are heuristic (45 days monthly, longer for DOSM and annual data). | Source / ours | A STALE flag means "check", not "MPOB stopped publishing". |
 | 20 | **Licensing.** BEPI lists data purchase rates ("Caj Data"). | Source | Check with MPOB before redistributing the data. |
 | 21 | **Operational.** The scheduled refresh does not run until `main` is the default branch and `MPOB_CONTACT` is set; the Vercel preview serves the committed lake read-only and runs no jobs. The lake is committed to git, so its history will grow. | Ours | See the schedule section above. |
+| 22 | **No export-by-destination data.** BEPI links ten destination reports (palm oil and palm kernel oil, 2014-2018); all return "information is being updated", and nothing newer is linked. MPOB's yearbook contents list destination tables (4.17-4.27) but the downloadable editions are only the contents pages. OpenDOSM's catalogue has no country-level trade dataset, and data.gov.my's archive could not be reached from the build environment. | Source | The dashboard cannot show who buys Malaysian palm oil. The two families are registered (`export_destination`, `export_destination_pko`) so a republished report loads automatically; the layout is untested because there is nothing to test on. |
+| 23 | **Exports by port have two rows called "OTHERS"** (one per region); the report only distinguishes them by position. | Source | Stored as `OTHERS (P. MALAYSIA)` and `OTHERS (SABAH/SARAWAK)`, checked against each region's subtotal for all 153 months. An earlier load had mislabelled these series and merged the two; it was replaced. |
 
 BEPI lists data purchase rates ("Caj Data"). Internal analysis is one thing; check with MPOB before redistributing.
 

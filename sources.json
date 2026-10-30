@@ -120,6 +120,22 @@
       "freq": "annual",
       "parser": "parse_generic_table",
       "title": "summary\\s+of\\s+the\\s+malaysian\\s+palm\\s+oil\\s+industry"
+    },
+    {
+      "id": "export_destination",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "export\\s+of\\s+palm\\s+oil\\s+(by|to)\\s+(major\\s+)?destinations?"
+    },
+    {
+      "id": "export_destination_pko",
+      "priority": "p2",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "export\\s+of\\s+palm\\s+kernel\\s+oil\\s+(by|to)\\s+(major\\s+)?destinations?"
     }
   ]
 }

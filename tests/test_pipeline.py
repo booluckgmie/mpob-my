@@ -287,3 +287,39 @@ def test_issues_endpoint_reads_readme_table():
     rows = api.issues()
     assert len(rows) >= 15 and rows[0]["n"] == 1 and "`" not in rows[0]["issue"] and rows[0]["where"]
     assert all(r["title"] and len(r["title"]) <= 95 and not r["title"].endswith("(P") for r in rows)
+
+
+def test_destination_reports_are_classified_and_generic_parse_handles_countries():
+    import bepi_reports, crawl
+    assert crawl.classify("Export of Palm Oil by Destinations 2018") == "export_destination"
+    assert crawl.classify("Export of Palm Oil to Major Destinations") == "export_destination"
+    assert crawl.classify("Export of Palm Kernel Oil By Destination 2016") == "export_destination_pko"
+    assert crawl.classify("Palm Oil Export by Major Ports 2025") == "export_ports"
+    html = ("<h1>EXPORT OF PALM OIL TO MAJOR DESTINATIONS - 2018</h1><table><tr><td>COUNTRY</td>"
+            + "".join(f"<td>{m}</td>" for m in ["JAN", "FEB", "MAR"]) + "<td>JAN - MAR</td></tr>"
+            "<tr><td>CHINA</td><td>1,000</td><td>2,000</td><td>3,000</td><td>6,000</td></tr>"
+            "<tr><td>INDIA</td><td>500</td><td>-</td><td>700</td><td>1,200</td></tr></table>")
+    df = bepi_reports.parse_report(html)[1]
+    assert set(df.label) == {"CHINA", "INDIA"} and df[(df.label == "INDIA") & (df.month == 3)]["value"].iloc[0] == 700
+
+
+def test_source_page_saying_information_is_being_updated_is_no_data_not_failure():
+    import bepi_reports
+    import pytest
+    with pytest.raises(bepi_reports.NoData):
+        bepi_reports.parse_report("<html>Currently, this information is being updated. Please try again later.</html>")
+
+
+def test_ports_report_labels_and_the_two_others_rows():
+    import bepi_reports
+    df = _report("report_ports_2014.html")
+    assert set(df.unit) == {"tonnes"} and "" not in set(df.label)          # port names are labels, not units
+    out, series = bepi_reports.to_obs("export_ports", df, "test", "ports")
+    jan = df[df.month == 1].assign(label=lambda d: d.label.replace(bepi_reports.RENAMES["export_ports"])).set_index("label")["value"]
+    assert jan["BUTTERWORTH"] + jan["PORT KLANG"] + jan["PASIR GUDANG"] + jan["OTHERS (P. MALAYSIA)"] == jan["P. MALAYSIA"]
+    assert abs(jan["LAHAD DATU"] + jan["SANDAKAN"] + jan["OTHERS (SABAH/SARAWAK)"] - jan["SABAH/SARAWAK"]) <= 2
+    assert jan["P. MALAYSIA"] + jan["SABAH/SARAWAK"] == jan["MALAYSIA"]
+    keys = {s["series_key"] for s in series}
+    assert len(keys) == len(series)                                         # nothing collapses into one series
+    assert any(k.endswith(":others_p_malaysia:tonnes") for k in keys) and any(k.endswith(":others_sabah_sarawak:tonnes") for k in keys)
+    assert any(":p_malaysia:" in k for k in keys) and not any(":pen_malaysia:" in k for k in keys)
