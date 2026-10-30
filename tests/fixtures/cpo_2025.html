@@ -1,0 +1,1260 @@
+<link rel="stylesheet" href="css/style.css" type="text/css" title="default" />
+
+<style type="text/css" media="print">
+.print-icon{
+    display:none;
+}
+</style>
+<style type="text/css">
+.print-icon{
+    margin:10px;
+    cursor:pointer;
+}
+</style>
+<body onload="parent.scrollTo(0,0)">
+<div id="main">
+
+    <table id="hor-kosong" style="width:100%;" >
+        <tr >
+            <th colspan="13" style="text-align:center;">
+                <img src="../images/mpob-logo-md.png" width="100" align="center"/>
+                <!--<span style="style1"><strong>MPOB DAILY MALAYSIA PRICES OF CRUDE PALM OIL (RM/TONNE)</strong><br /><strong><em>Harga Harian Minyak Sawit Mentah -  Malaysia (RM/Tan)</em></strong><br />-->
+                </span>
+            </th>
+            <tbody>
+
+				 <tr>
+                    <td colspan="13"> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>MALAYSIA PRICES OF CRUDE PALM OIL</title>
+<script type="text/javascript" src="js/jquery/jquery-latest.pack.js"></script>
+<script type="text/javascript">
+function loadBack(tahun){
+    location.href="price_local_daily_view_cpo_msia.php?more=Y&jenis=1Y&tahun="+tahun;   
+}
+</script>
+<script type="text/javascript">
+$(function () {
+    var chart;
+
+    $(document).ready(function() {
+	
+	    Highcharts.setOptions({
+		lang: {
+        decimalPoint: '.',
+        thousandsSep: ','
+		}
+		});	   
+		
+        chart = new Highcharts.Chart({
+            chart: {
+                renderTo: 'container',
+                type: 'line',
+				plotBackgroundImage: 'bggraph4.png',
+				marginBottom: 60
+            },
+			credits: {
+			enabled: false
+			},
+			
+            title: {
+                text: 'MPOB: DAILY MALAYSIA PRICES OF CRUDE PALM OIL (RM/TONNE)-2025',
+                style : {
+                            fontWeight : 'bold',
+                            color : '#232323',
+                            fontFamily : 'Arial',
+                            fontSize : '12px'
+                },
+                x: 0 //center
+            },
+            subtitle: {
+                text: 'MPOB: Harga Harian Minyak Sawit Mentah - Malaysia (RM/Tan)- 2025',
+                style : {
+                            fontWeight : 'bold',
+                            color : '#0066FF',
+                            fontFamily : 'Arial',
+                            fontSize : '12px'
+                },
+                x: 0
+            },
+            plotOptions:{
+                line:{showInLegend:false},
+            },
+            xAxis: {
+				labels: {
+                staggerLines: 2},
+				tickPositioner: function () {
+                var positions = [],
+                    tick = Math.floor(this.dataMin),
+                    increment = Math.ceil((this.dataMax - this.dataMin) / 11);
+
+                if (this.dataMax !== null && this.dataMin !== null) {
+                    for (tick; tick - increment <= this.dataMax; tick += increment) {
+                        positions.push(tick);
+                    }
+                }
+                return positions;
+				},
+               
+                title :{ text : 'Date'},
+				
+                categories: [
+                                'Dec 30, 2024',
+                                'Jan 02, 2025',
+                                'Jan 03, 2025',
+                                'Jan 06, 2025',
+                                'Jan 07, 2025',
+                                'Jan 08, 2025',
+                                'Jan 09, 2025',
+                                'Jan 10, 2025',
+                                'Jan 13, 2025',
+                                'Jan 14, 2025',
+                                'Jan 15, 2025',
+                                'Jan 16, 2025',
+                                'Jan 17, 2025',
+                                'Jan 20, 2025',
+                                'Jan 21, 2025',
+                                'Jan 22, 2025',
+                                'Jan 23, 2025',
+                                'Jan 24, 2025',
+                                'Jan 27, 2025',
+                                'Jan 28, 2025',
+                                'Jan 31, 2025',
+                                'Feb 03, 2025',
+                                'Feb 04, 2025',
+                                'Feb 05, 2025',
+                                'Feb 06, 2025',
+                                'Feb 07, 2025',
+                                'Feb 10, 2025',
+                                'Feb 12, 2025',
+                                'Feb 13, 2025',
+                                'Feb 14, 2025',
+                                'Feb 17, 2025',
+                                'Feb 18, 2025',
+                                'Feb 19, 2025',
+                                'Feb 20, 2025',
+                                'Feb 21, 2025',
+                                'Feb 24, 2025',
+                                'Feb 25, 2025',
+                                'Feb 26, 2025',
+                                'Feb 27, 2025',
+                                'Mar 03, 2025',
+                                'Mar 04, 2025',
+                                'Mar 05, 2025',
+                                'Mar 06, 2025',
+                                'Mar 07, 2025',
+                                'Mar 10, 2025',
+                                'Mar 11, 2025',
+                                'Mar 12, 2025',
+                                'Mar 13, 2025',
+                                'Mar 14, 2025',
+                                'Mar 17, 2025',
+                                'Mar 19, 2025',
+                                'Mar 20, 2025',
+                                'Mar 21, 2025',
+                                'Mar 24, 2025',
+                                'Mar 25, 2025',
+                                'Mar 26, 2025',
+                                'Mar 27, 2025',
+                                'Mar 28, 2025',
+                                'Apr 02, 2025',
+                                'Apr 03, 2025',
+                                'Apr 04, 2025',
+                                'Apr 07, 2025',
+                                'Apr 08, 2025',
+                                'Apr 09, 2025',
+                                'Apr 10, 2025',
+                                'Apr 11, 2025',
+                                'Apr 14, 2025',
+                                'Apr 15, 2025',
+                                'Apr 16, 2025',
+                                'Apr 17, 2025',
+                                'Apr 18, 2025',
+                                'Apr 21, 2025',
+                                'Apr 22, 2025',
+                                'Apr 23, 2025',
+                                'Apr 24, 2025',
+                                'Apr 25, 2025',
+                                'Apr 28, 2025',
+                                'Apr 29, 2025',
+                                'Apr 30, 2025',
+                                'May 02, 2025',
+                                'May 05, 2025',
+                                'May 06, 2025',
+                                'May 07, 2025',
+                                'May 08, 2025',
+                                'May 09, 2025',
+                                'May 13, 2025',
+                                'May 14, 2025',
+                                'May 15, 2025',
+                                'May 16, 2025',
+                                'May 19, 2025',
+                                'May 20, 2025',
+                                'May 21, 2025',
+                                'May 22, 2025',
+                                'May 23, 2025',
+                                'May 26, 2025',
+                                'May 27, 2025',
+                                'May 28, 2025',
+                                'May 29, 2025',
+                                'May 30, 2025',
+                                'Jun 03, 2025',
+                                'Jun 04, 2025',
+                                'Jun 05, 2025',
+                                'Jun 06, 2025',
+                                'Jun 09, 2025',
+                                'Jun 10, 2025',
+                                'Jun 11, 2025',
+                                'Jun 12, 2025',
+                                'Jun 13, 2025',
+                                'Jun 16, 2025',
+                                'Jun 17, 2025',
+                                'Jun 18, 2025',
+                                'Jun 19, 2025',
+                                'Jun 20, 2025',
+                                'Jun 23, 2025',
+                                'Jun 24, 2025',
+                                'Jun 25, 2025',
+                                'Jun 26, 2025',
+                                'Jun 30, 2025',
+                                'Jul 01, 2025',
+                                'Jul 02, 2025',
+                                'Jul 03, 2025',
+                                'Jul 04, 2025',
+                                'Jul 07, 2025',
+                                'Jul 08, 2025',
+                                'Jul 09, 2025',
+                                'Jul 10, 2025',
+                                'Jul 11, 2025',
+                                'Jul 14, 2025',
+                                'Jul 15, 2025',
+                                'Jul 16, 2025',
+                                'Jul 17, 2025',
+                                'Jul 18, 2025',
+                                'Jul 21, 2025',
+                                'Jul 22, 2025',
+                                'Jul 23, 2025',
+                                'Jul 24, 2025',
+                                'Jul 25, 2025',
+                                'Jul 28, 2025',
+                                'Jul 29, 2025',
+                                'Jul 30, 2025',
+                                'Aug 01, 2025',
+                                'Aug 04, 2025',
+                                'Aug 05, 2025',
+                                'Aug 06, 2025',
+                                'Aug 07, 2025',
+                                'Aug 08, 2025',
+                                'Aug 11, 2025',
+                                'Aug 12, 2025',
+                                'Aug 13, 2025',
+                                'Aug 14, 2025',
+                                'Aug 15, 2025',
+                                'Aug 18, 2025',
+                                'Aug 19, 2025',
+                                'Aug 20, 2025',
+                                'Aug 21, 2025',
+                                'Aug 22, 2025',
+                                'Aug 25, 2025',
+                                'Aug 26, 2025',
+                                'Aug 27, 2025',
+                                'Aug 28, 2025',
+                                'Aug 29, 2025',
+                                'Sep 02, 2025',
+                                'Sep 03, 2025',
+                                'Sep 04, 2025',
+                                'Sep 08, 2025',
+                                'Sep 09, 2025',
+                                'Sep 10, 2025',
+                                'Sep 11, 2025',
+                                'Sep 12, 2025',
+                                'Sep 17, 2025',
+                                'Sep 18, 2025',
+                                'Sep 19, 2025',
+                                'Sep 22, 2025',
+                                'Sep 23, 2025',
+                                'Sep 24, 2025',
+                                'Sep 25, 2025',
+                                'Sep 26, 2025',
+                                'Sep 29, 2025',
+                                'Sep 30, 2025',
+                                'Oct 01, 2025',
+                                'Oct 02, 2025',
+                                'Oct 03, 2025',
+                                'Oct 06, 2025',
+                                'Oct 07, 2025',
+                                'Oct 08, 2025',
+                                'Oct 09, 2025',
+                                'Oct 10, 2025',
+                                'Oct 13, 2025',
+                                'Oct 14, 2025',
+                                'Oct 15, 2025',
+                                'Oct 16, 2025',
+                                'Oct 17, 2025',
+                                'Oct 21, 2025',
+                                'Oct 22, 2025',
+                                'Oct 23, 2025',
+                                'Oct 24, 2025',
+                                'Oct 27, 2025',
+                                'Oct 28, 2025',
+                                'Oct 29, 2025',
+                                'Oct 30, 2025',
+                                'Oct 31, 2025',
+                                'Nov 03, 2025',
+                                'Nov 04, 2025',
+                                'Nov 05, 2025',
+                                'Nov 06, 2025',
+                                'Nov 07, 2025',
+                                'Nov 10, 2025',
+                                'Nov 11, 2025',
+                                'Nov 12, 2025',
+                                'Nov 13, 2025',
+                                'Nov 14, 2025',
+                                'Nov 17, 2025',
+                                'Nov 18, 2025',
+                                'Nov 19, 2025',
+                                'Nov 20, 2025',
+                                'Nov 21, 2025',
+                                'Nov 24, 2025',
+                                'Nov 25, 2025',
+                                'Nov 26, 2025',
+                                'Nov 27, 2025',
+                                'Nov 28, 2025',
+                                'Dec 01, 2025',
+                                'Dec 02, 2025',
+                                'Dec 03, 2025',
+                                'Dec 04, 2025',
+                                'Dec 05, 2025',
+                                'Dec 08, 2025',
+                                'Dec 09, 2025',
+                                'Dec 10, 2025',
+                                'Dec 11, 2025',
+                                'Dec 12, 2025',
+                                'Dec 15, 2025',
+                                'Dec 16, 2025',
+                                'Dec 17, 2025',
+                                'Dec 18, 2025',
+                                'Dec 19, 2025',
+                                'Dec 22, 2025',
+                                'Dec 23, 2025',
+                                'Dec 24, 2025',
+                                'Dec 26, 2025',
+                                'Dec 29, 2025',
+                                'Dec 30, 2025',
+                                'Dec 31, 2025',
+                                    ]
+            },
+            yAxis: {
+                title: {
+                    text: 'RM/TONNE'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
+            },
+            tooltip: {
+                pointFormat: "RM{point.y:,.2f}"
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -10,
+                y: 100,
+                borderWidth: 0
+            },
+            series: [{
+                name: 'Crude Palm Oil',
+				 marker : {
+                    enabled : true,
+                    radius : 3.5
+                },
+                data: [
+                               5000.50,
+                                4819.00,
+                                4726.00,
+                                4642.50,
+                                4709.00,
+                                4702.50,
+                                4631.00,
+                                4725.00,
+                                4810.00,
+                                4789.50,
+                                4632.50,
+                                4619.50,
+                                4577.50,
+                                4578.50,
+                                4536.50,
+                                4565.50,
+                                4517.00,
+                                4527.50,
+                                4566.00,
+                                4560.00,
+                                4600.00,
+                                4620.50,
+                                4599.00,
+                                4650.00,
+                                4675.50,
+                                4731.50,
+                                4767.50,
+                                4850.50,
+                                4790.50,
+                                4765.00,
+                                4736.50,
+                                4742.50,
+                                4783.00,
+                                4805.00,
+                                4868.00,
+                                4781.00,
+                                4792.50,
+                                4757.00,
+                                4687.50,
+                                4741.00,
+                                4677.50,
+                                4712.50,
+                                4776.50,
+                                4817.00,
+                                4840.00,
+                                4798.00,
+                                4801.00,
+                                4806.50,
+                                4814.50,
+                                4749.00,
+                                4688.00,
+                                4707.00,
+                                4721.50,
+                                4669.50,
+                                4634.50,
+                                4624.50,
+                                4677.00,
+                                4705.00,
+                                4835.00,
+                                4791.00,
+                                4764.50,
+                                4644.00,
+                                4576.50,
+                                4489.50,
+                                4520.00,
+                                4498.00,
+                                4418.50,
+                                4332.00,
+                                4246.50,
+                                4262.00,
+                                4180.00,
+                                4094.00,
+                                4113.00,
+                                4142.50,
+                                4157.50,
+                                4172.50,
+                                4075.00,
+                                4018.00,
+                                3974.50,
+                                3968.00,
+                                3870.00,
+                                3878.00,
+                                3781.00,
+                                3779.50,
+                                3787.00,
+                                3868.50,
+                                3969.00,
+                                3882.50,
+                                3879.00,
+                                3889.50,
+                                3944.50,
+                                3907.50,
+                                3850.00,
+                                3860.00,
+                                3817.00,
+                                3841.00,
+                                3880.50,
+                                3952.00,
+                                3854.50,
+                                3953.00,
+                                3940.50,
+                                3936.00,
+                                3913.50,
+                                3949.50,
+                                3938.00,
+                                3854.50,
+                                3861.50,
+                                3909.00,
+                                4044.50,
+                                4059.50,
+                                4076.00,
+                                4089.50,
+                                4076.50,
+                                4079.00,
+                                4000.00,
+                                3963.00,
+                                3956.50,
+                                3912.50,
+                                3955.00,
+                                4011.50,
+                                4036.00,
+                                4032.50,
+                                4020.50,
+                                4078.50,
+                                4103.00,
+                                4105.50,
+                                4107.00,
+                                4155.00,
+                                4126.00,
+                                4146.50,
+                                4156.00,
+                                4230.50,
+                                4198.00,
+                                4193.50,
+                                4220.00,
+                                4235.50,
+                                4204.50,
+                                4205.00,
+                                4179.50,
+                                4207.00,
+                                4200.50,
+                                4171.50,
+                                4226.50,
+                                4224.50,
+                                4209.00,
+                                4218.00,
+                                4259.50,
+                                4344.00,
+                                4360.00,
+                                4346.50,
+                                4378.50,
+                                4455.50,
+                                4462.50,
+                                4421.50,
+                                4406.50,
+                                4443.50,
+                                4419.00,
+                                4403.00,
+                                4411.00,
+                                4370.00,
+                                4349.00,
+                                4389.50,
+                                4344.00,
+                                4387.00,
+                                4384.50,
+                                4409.00,
+                                4364.50,
+                                4402.50,
+                                4400.50,
+                                4419.50,
+                                4364.50,
+                                4376.00,
+                                4384.00,
+                                4282.00,
+                                4320.50,
+                                4361.00,
+                                4360.50,
+                                4342.00,
+                                4282.00,
+                                4346.00,
+                                4389.50,
+                                4422.00,
+                                4379.00,
+                                4405.50,
+                                4442.50,
+                                4486.50,
+                                4505.50,
+                                4415.00,
+                                4403.50,
+                                4411.50,
+                                4411.00,
+                                4412.00,
+                                4452.50,
+                                4398.00,
+                                4381.50,
+                                4401.00,
+                                4350.00,
+                                4300.50,
+                                4236.00,
+                                4239.00,
+                                4215.00,
+                                4140.50,
+                                4123.00,
+                                4077.50,
+                                4112.00,
+                                4110.50,
+                                4091.50,
+                                4104.00,
+                                4104.00,
+                                4081.50,
+                                4046.50,
+                                4102.50,
+                                4131.50,
+                                4149.00,
+                                4116.50,
+                                4074.00,
+                                4047.50,
+                                3992.50,
+                                3990.00,
+                                4022.50,
+                                4090.00,
+                                4098.50,
+                                4086.00,
+                                4094.00,
+                                4077.50,
+                                4099.50,
+                                4073.00,
+                                4029.00,
+                                3986.50,
+                                4038.00,
+                                4009.50,
+                                4006.00,
+                                3969.00,
+                                3961.50,
+                                3956.00,
+                                3909.00,
+                                3921.50,
+                                3987.50,
+                                3974.50,
+                                4039.50,
+                                4018.50,
+                                3945.00,
+                                3933.00,
+                                ]
+            }]
+        });
+    });
+    
+});
+</script>
+<style type="text/css">
+.moreButton {
+display: inline;
+text-align: left;
+float: right;
+padding: 5px 12px 5px 10px;
+background-color: #008A5E;
+margin-top: 5px;
+text-decoration:none;
+color:#FFF;
+text-transform:uppercase;
+font-size:.8em;
+font-family:Arial, Helvetica, sans-serif;
+font-weight:bold;
+}
+.listTahun {
+    margin:0px;
+    padding:0px 2px;
+}
+.listTahun li{
+    list-style:none;
+    display:block;
+    float:left;
+    margin:1px;
+    margin:0px 1px 7px 0px;
+}
+.listTahun li a{
+    text-decoration:none;
+    padding:2px 5px;
+    background:#CCC;
+    color:#333;
+    border:1px solid #999;
+    
+}
+.listTahun li a:hover{
+    color:#C00;
+}
+</style>
+</head>
+
+<body>
+<table id=hor-kosong width=100%><tr><td align=left ><h1 style="font-size:2vw"><font  color="#027b77">MYR 4,343.50</h1></td><td align=right><h1 style="font-size:2vw"><font color="#027b77">Latest Price: 29 October 2026</font></h1></td></tr></table>
+<script type="text/javascript" src="js/highcharts.js"></script>
+<!--<script type="text/javascript" src="js/modules/exporting.js"></script>-->
+<div id="container" style="height: 300px"></div>
+<br>
+
+<div align=center>
+<ul class="listTahun">
+   
+	<li><a href="price_local_daily_view_cpo_msia.php?more=Y&jenis=6M"><font size=2>6M</font></a> </li>
+	<li><a href="price_local_daily_view_cpo_msia.php?more=Y&jenis=3M"><font size=2>3M</font></a> </li>
+	<li><a href="price_local_daily_view_cpo_msia.php?more=Y&jenis=1M"><font size=2>1M</font></a> </li>
+	<li><a href="price_local_daily_view_cpo_msia.php?more=Y&jenis=1W"><font size=2>1W</font></a> </li>
+            <li><a href="javascript:loadBack(2024);"><font size=2>2024</font></a></li>
+            <li><a href="javascript:loadBack(2025);"><font size=2>2025</font></a></li>
+            <li><a href="javascript:loadBack(2026);"><font size=2>2026</font></a></li>
+        </ul>
+    
+
+
+</div>
+</td>
+
+                </tr>
+				<table id="hor-zebra" style="width:100%;">
+				<tr> <td colspan="13">
+				    <img class="print-icon" src="../images/icons/printer.png" onclick="window.print() " />
+<a href='../admin2/price_local_daily_view_cpo_msia_excel.php?val=2025&excel=Y'><img class='print-icon' src='./images/download.png' border=0 title='Download as excel file' alt='Download as excel file'></a></td>
+				</tr>
+                <tr >
+                    <td bgcolor="#00b1a9" height="70"><div align="center"></div></td>
+                    <td colspan="12" bgcolor="#00b1a9" height="70"><div align="center"><strong>Crude Palm Oil (Local Delivered)</strong><br /><em> Minyak Sawit Mentah (Hantaran Tempatan)</em></div></td>
+
+                </tr>
+                <tr >
+                    <td width="5%" bgcolor="#FFFF00" align="center" ><strong><div align="center">Date</div></strong></td>
+                    <td width="7%" bgcolor="#FFFF00" align="center" ><strong><div align="center" class="style2">January</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">February</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">March</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">April</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">May</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">June</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">July</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">August</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">September</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">October</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">November</div></strong></td>
+                    <td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">December</div></strong></td>
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">01</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">NT</div></td>
+															<td><div align="center">NT</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">3,955.00</div></td>
+										                   <td><div align="center">4,200.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,346.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,098.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">02</div></td>
+					                    <td><div align="center">4,819.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+															<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,835.00</div></td>
+										                    <td><div align="center">3,968.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,011.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,389.50</div></td>
+										                   <td><div align="center">4,389.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,086.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">03</div></td>
+					                    <td><div align="center">4,726.00</div></td>
+										                    <td><div align="center">4,620.50</div></td>
+															<td><div align="center">4,741.00</div></td>
+										                    <td><div align="center">4,791.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">3,953.00</div></td>
+										                   <td><div align="center">4,036.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,344.00</div></td>
+										                   <td><div align="center">4,422.00</div></td>
+										                   <td><div align="center">4,140.50</div></td>
+										                   <td><div align="center">4,094.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">04</div></td>
+					                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">4,599.00</div></td>
+															<td><div align="center">4,677.50</div></td>
+										                    <td><div align="center">4,764.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,940.50</div></td>
+										                   <td><div align="center">4,032.50</div></td>
+										                   <td><div align="center">4,171.50</div></td>
+										                   <td><div align="center">4,387.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,123.00</div></td>
+										                   <td><div align="center">4,077.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">05</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,650.00</div></td>
+															<td><div align="center">4,712.50</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">3,870.00</div></td>
+										                    <td><div align="center">3,936.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,226.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,077.50</div></td>
+										                   <td><div align="center">4,099.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">06</div></td>
+					                    <td><div align="center">4,642.50</div></td>
+										                    <td><div align="center">4,675.50</div></td>
+															<td><div align="center">4,776.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,878.00</div></td>
+										                    <td><div align="center">3,913.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,224.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,379.00</div></td>
+										                   <td><div align="center">4,112.00</div></td>
+										                   <td><div align="center">NT</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">07</div></td>
+					                    <td><div align="center">4,709.00</div></td>
+										                    <td><div align="center">4,731.50</div></td>
+															<td><div align="center">4,817.00</div></td>
+										                    <td><div align="center">4,644.00</div></td>
+										                    <td><div align="center">3,781.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,020.50</div></td>
+										                   <td><div align="center">4,209.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,405.50</div></td>
+										                   <td><div align="center">4,110.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">08</div></td>
+					                    <td><div align="center">4,702.50</div></td>
+										                    <td><div align="center">NT</div></td>
+															<td><div align="center">NT</div></td>
+										                    <td><div align="center">4,576.50</div></td>
+										                    <td><div align="center">3,779.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,078.50</div></td>
+										                   <td><div align="center">4,218.00</div></td>
+										                   <td><div align="center">4,384.50</div></td>
+										                   <td><div align="center">4,442.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,073.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">09</div></td>
+					                    <td><div align="center">4,631.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+															<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,489.50</div></td>
+										                    <td><div align="center">3,787.00</div></td>
+										                    <td><div align="center">3,949.50</div></td>
+										                   <td><div align="center">4,103.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,409.00</div></td>
+										                   <td><div align="center">4,486.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,029.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">10</div></td>
+					                    <td><div align="center">4,725.00</div></td>
+										                    <td><div align="center">4,767.50</div></td>
+															<td><div align="center">4,840.00</div></td>
+										                    <td><div align="center">4,520.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">3,938.00</div></td>
+										                   <td><div align="center">4,105.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,364.50</div></td>
+										                   <td><div align="center">4,505.50</div></td>
+										                   <td><div align="center">4,091.50</div></td>
+										                   <td><div align="center">3,986.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">11</div></td>
+					                    <td><div align="center">NT</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+															<td><div align="center">4,798.00</div></td>
+										                    <td><div align="center">4,498.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,854.50</div></td>
+										                   <td><div align="center">4,107.00</div></td>
+										                   <td><div align="center">4,259.50</div></td>
+										                   <td><div align="center">4,402.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,104.00</div></td>
+										                   <td><div align="center">4,038.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">12</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,850.50</div></td>
+															<td><div align="center">4,801.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,861.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,344.00</div></td>
+										                   <td><div align="center">4,400.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,104.00</div></td>
+										                   <td><div align="center">4,009.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">13</div></td>
+					                    <td><div align="center">4,810.00</div></td>
+										                    <td><div align="center">4,790.50</div></td>
+															<td><div align="center">4,806.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,868.50</div></td>
+										                    <td><div align="center">3,909.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,360.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,415.00</div></td>
+										                   <td><div align="center">4,081.50</div></td>
+										                   <td><div align="center">NT</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">14</div></td>
+					                    <td><div align="center">4,789.50</div></td>
+										                    <td><div align="center">4,765.00</div></td>
+															<td><div align="center">4,814.50</div></td>
+										                    <td><div align="center">4,418.50</div></td>
+										                    <td><div align="center">3,969.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,155.00</div></td>
+										                   <td><div align="center">4,346.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,403.50</div></td>
+										                   <td><div align="center">4,046.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">15</div></td>
+					                    <td><div align="center">4,632.50</div></td>
+										                    <td><div align="center">NT</div></td>
+															<td><div align="center">NT</div></td>
+										                    <td><div align="center">4,332.00</div></td>
+										                    <td><div align="center">3,882.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,126.00</div></td>
+										                   <td><div align="center">4,378.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,411.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,006.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">16</div></td>
+					                    <td><div align="center">4,619.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+															<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,246.50</div></td>
+										                    <td><div align="center">3,879.00</div></td>
+										                    <td><div align="center">4,044.50</div></td>
+										                   <td><div align="center">4,146.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,411.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">3,969.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">17</div></td>
+					                    <td><div align="center">4,577.50</div></td>
+										                    <td><div align="center">4,736.50</div></td>
+															<td><div align="center">4,749.00</div></td>
+										                    <td><div align="center">4,262.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">4,059.50</div></td>
+										                   <td><div align="center">4,156.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,419.50</div></td>
+										                   <td><div align="center">4,412.00</div></td>
+										                   <td><div align="center">4,102.50</div></td>
+										                   <td><div align="center">3,961.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">18</div></td>
+					                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">4,742.50</div></td>
+															<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,180.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,076.00</div></td>
+										                   <td><div align="center">4,230.50</div></td>
+										                   <td><div align="center">4,455.50</div></td>
+										                   <td><div align="center">4,364.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,131.50</div></td>
+										                   <td><div align="center">3,956.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">19</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,783.00</div></td>
+															<td><div align="center">4,688.00</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">3,889.50</div></td>
+										                    <td><div align="center">4,089.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,462.50</div></td>
+										                   <td><div align="center">4,376.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,149.00</div></td>
+										                   <td><div align="center">3,909.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">20</div></td>
+					                    <td><div align="center">4,578.50</div></td>
+										                    <td><div align="center">4,805.00</div></td>
+															<td><div align="center">4,707.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,944.50</div></td>
+										                    <td><div align="center">4,076.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,421.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,116.50</div></td>
+										                   <td><div align="center">NT</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">21</div></td>
+					                    <td><div align="center">4,536.50</div></td>
+										                    <td><div align="center">4,868.00</div></td>
+															<td><div align="center">4,721.50</div></td>
+										                    <td><div align="center">4,094.00</div></td>
+										                    <td><div align="center">3,907.50</div></td>
+										                    <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,198.00</div></td>
+										                   <td><div align="center">4,406.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,452.50</div></td>
+										                   <td><div align="center">4,074.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">22</div></td>
+					                    <td><div align="center">4,565.50</div></td>
+										                    <td><div align="center">NT</div></td>
+															<td><div align="center">NT</div></td>
+										                    <td><div align="center">4,113.00</div></td>
+										                    <td><div align="center">3,850.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,193.50</div></td>
+										                   <td><div align="center">4,443.50</div></td>
+										                   <td><div align="center">4,384.00</div></td>
+										                   <td><div align="center">4,398.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">3,921.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">23</div></td>
+					                    <td><div align="center">4,517.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+															<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,142.50</div></td>
+										                    <td><div align="center">3,860.00</div></td>
+										                    <td><div align="center">4,079.00</div></td>
+										                   <td><div align="center">4,220.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,282.00</div></td>
+										                   <td><div align="center">4,381.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">3,987.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">24</div></td>
+					                    <td><div align="center">4,527.50</div></td>
+										                    <td><div align="center">4,781.00</div></td>
+															<td><div align="center">4,669.50</div></td>
+										                    <td><div align="center">4,157.50</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">4,000.00</div></td>
+										                   <td><div align="center">4,235.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,320.50</div></td>
+										                   <td><div align="center">4,401.00</div></td>
+										                   <td><div align="center">4,047.50</div></td>
+										                   <td><div align="center">3,974.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">25</div></td>
+					                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">4,792.50</div></td>
+															<td><div align="center">4,634.50</div></td>
+										                    <td><div align="center">4,172.50</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,963.00</div></td>
+										                   <td><div align="center">4,204.50</div></td>
+										                   <td><div align="center">4,419.00</div></td>
+										                   <td><div align="center">4,361.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">3,992.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">26</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">4,757.00</div></td>
+															<td><div align="center">4,624.50</div></td>
+										                    <td><div align="center">NT</div></td>
+										                    <td><div align="center">3,817.00</div></td>
+										                    <td><div align="center">3,956.50</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,403.00</div></td>
+										                   <td><div align="center">4,360.50</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">3,990.00</div></td>
+										                   <td><div align="center">4,039.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">27</div></td>
+					                    <td><div align="center">4,566.00</div></td>
+										                    <td><div align="center">4,687.50</div></td>
+															<td><div align="center">4,677.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,841.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,411.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,350.00</div></td>
+										                   <td><div align="center">4,022.50</div></td>
+										                   <td><div align="center">NT</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">28</div></td>
+					                    <td><div align="center">4,560.00</div></td>
+										                    <td><div align="center">NT</div></td>
+															<td><div align="center">4,705.00</div></td>
+										                    <td><div align="center">4,075.00</div></td>
+										                    <td><div align="center">3,880.50</div></td>
+										                    <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,205.00</div></td>
+										                   <td><div align="center">4,370.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,300.50</div></td>
+										                   <td><div align="center">4,090.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">29</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										<td></td>										<td><div align="center">NT</div></td>
+										                    <td><div align="center">4,018.00</div></td>
+										                    <td><div align="center">3,952.00</div></td>
+										                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">4,179.50</div></td>
+										                   <td><div align="center">4,349.00</div></td>
+										                   <td><div align="center">4,342.00</div></td>
+										                   <td><div align="center">4,236.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,018.50</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">30</div></td>
+					                    <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										<td></td>										<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                    <td><div align="center">3,974.50</div></td>
+										                    <td><div align="center">3,854.50</div></td>
+										                    <td><div align="center">3,912.50</div></td>
+										                   <td><div align="center">4,207.00</div></td>
+										                   <td><div align="center">NT</div></td>
+										                   <td><div align="center">4,282.00</div></td>
+										                   <td><div align="center">4,239.00</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										                   <td><div align="center">3,945.00</div></td>
+					
+                </tr>
+                					<tr bgcolor="#FFFFCC">
+                    <td><div align="center">31</div></td>
+					                    <td><div align="center">4,600.00</div></td>
+										<td></td>										<td><div align="center"><font color="#FF0000">PH</font></div></td>
+										<td></td>					                    <td><div align="center">NT</div></td>
+										<td></td>					                   <td><div align="center">NT</div></td>
+										                   <td><div align="center"><font color="#FF0000">PH</font></div></td>
+										<td></td>					                   <td><div align="center">4,215.00</div></td>
+										<td></td>					                   <td><div align="center">3,933.00</div></td>
+					
+                </tr>
+                
+				  <tr>
+                    <td width="5%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">Average</div></strong></td>
+                    <td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,672.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,759.00</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,740.00</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,319.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">3,880.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">3,969.00</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,112.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,329.00</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,371.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,412.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,089.50</div></strong></td>
+					<td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">4,042.50</div></strong></td>
+                 </tr>
+				 </table>
+				<!--
+                 <tr>
+                    <td width="5%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">Date</div></strong></td>
+                    <td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">January</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">February</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">March</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">April</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">May</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">June</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">July</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">August</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">September</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">October</div></strong></td>
+                    <td width="7%"  bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">November</div></strong></td>
+                    <td width="7%" bgcolor="#FFFF00" align="center" class="style2"><strong><div align="center">December</div></strong></td>
+                </tr>
+				-->
+            </tbody>
+        </tr>
+    </table>
+    <p><br /></p>
+    <div style="padding-left:0px;">
+        <p>Note : </p>
+ 		&nbsp;&nbsp;&nbsp;&nbsp; 1) All prices are weighted average / Semua harga dalam purata wajaran <br>
+		&nbsp;&nbsp;&nbsp;&nbsp; 2) Price to be revised accordingly at 8.30am & 4.30pm / Harga akan dikemaskini pada jam 8.30 pagi & 4.30 petang.<br>
+
+		<p>Legend : </p>
+		&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<font color=red>**</font> - Price as at 8.30 AM / Harga adalah sehingga 8.30 pagi.<br>
+        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NT - No Trade / Tiada Urusniaga <br>
+        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<font color=red>PH </font>: Public Holiday / Cuti Am
+
+        <p>Last update : 30/10/2026 &nbsp;
+							4.30 pm        </p>
+    </div>
+</div>
+
+
+</body>

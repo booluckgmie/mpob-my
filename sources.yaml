@@ -1,0 +1,144 @@
+# MPOB dataset registry - drives the crawler, the parser map and the coverage SLA.
+# priority: p0 = core SSOT, p1 = high value, p2 = niche/archival
+families:
+  - id: headline
+    name: Monthly industry performance
+    grain: month
+    dims: [measure, product]
+    freq: monthly
+    release: "10th, 12:30 MYT (slips to next working day)"
+    url: https://bepi.mpob.gov.my/ticker/infoticker.php
+    priority: p0
+    notes: 7 headline series. Only national aggregates.
+
+  - id: cpo_production
+    name: Production of Crude Palm Oil
+    grain: month
+    dims: [state, sector]
+    freq: annual file, monthly rows
+    url: /index.php/.../Production of Crude Palm Oil {year}
+    priority: p0
+    notes: State breakdown is the source of seasonality models.
+
+  - id: pko_production
+    name: Production of CPKO / PK / PKC / Selected Processed Palm Oil
+    grain: month
+    dims: [product, state]
+    freq: annual file
+    priority: p1
+
+  - id: stocks
+    name: Monthly Closing Stock of Oil Palm Products
+    grain: month
+    dims: [product, sector]
+    freq: annual file
+    priority: p0
+    notes: 2026 file not listed on the import sitemap - fall back to monthly release.
+
+  - id: refinery_stocks
+    name: Stock of Selected Processed Palm Oil at Refinery
+    grain: month
+    dims: [product, refinery]
+    freq: annual file
+    priority: p1
+
+  - id: export_monthly
+    name: Monthly Export of Oil Palm Products
+    grain: month
+    dims: [product, destination]
+    freq: annual file
+    priority: p0
+    notes: Highest-signal table. Header row position shifts per edition.
+
+  - id: export_ports
+    name: Palm Oil Export by Major Ports
+    grain: month
+    dims: [port, product]
+    freq: annual file
+    priority: p1
+
+  - id: import_monthly
+    name: Monthly Import of Oil Palm Products
+    grain: month
+    dims: [product, origin]
+    freq: annual file
+    priority: p1
+    notes: Listed coverage appears to stop at 2021 - verify before relying on it.
+
+  - id: oer
+    name: Oil Extraction Rate (CPO, CPKO, PK, PKC recovery)
+    grain: month
+    dims: [state, sector]
+    freq: annual file
+    priority: p1
+    notes: Best operational efficiency benchmark; regional spread is wide.
+
+  - id: yield
+    name: FFB Yield & CPO Yield of Oil Palm Estates
+    grain: month
+    dims: [state, sector]
+    freq: annual file
+    priority: p1
+    notes: Gaps visible for 2019 and 2021 - treat as discontinuous.
+
+  - id: area
+    name: Oil Palm Planted Area
+    grain: month / annual
+    dims: [state, category, maturity]
+    freq: annual file
+    priority: p2
+    notes: Sparse after 2018 per sitemap; check before promising state coverage.
+
+  - id: sectoral
+    name: Sectoral Status (FFB received by mill, refinery processed, capacities)
+    grain: month
+    dims: [mill, refinery, capacity]
+    freq: annual file
+    priority: p1
+    notes: Refinery and milling utilisation is the under-used angle.
+
+  - id: seeds_seedlings
+    name: Germinated seeds supply-demand, seedling sales and closing stock
+    grain: month
+    dims: [nursery_category]
+    freq: annual file
+    priority: p2
+    notes: Leading indicator for 3-4 year forward supply. Rarely watched.
+
+  - id: prices_daily
+    name: Daily CPO and FFB reference prices by region
+    grain: day
+    dims: [region, product]
+    freq: daily (business days)
+    priority: p0
+    notes: JS-rendered; endpoint discovery still required.
+
+  - id: prices_weekly
+    name: Weekly prices
+    grain: week
+    dims: [product]
+    freq: weekly
+    priority: p1
+
+  - id: prices_biweekly
+    name: Prices released on 1st and 16th
+    grain: half-month
+    dims: [product]
+    freq: twice monthly
+    priority: p2
+
+  - id: export_duties
+    name: Export duties and CPO notification values
+    grain: month
+    dims: [product]
+    freq: monthly
+    priority: p2
+    notes: Drives downstream margin maths; CPO values gazetted monthly.
+
+  - id: summary_annual
+    name: Summary of the Malaysian Palm Oil Industry
+    grain: year
+    dims: [all]
+    freq: annual
+    priority: p2
+    notes: Good for backfilling history before 2013.

@@ -1,0 +1,125 @@
+{
+  "_comment": "MPOB crawler config. Match on LINK TEXT, not URL - BEPI link paths are unstable.",
+  "base": "https://bepi.mpob.gov.my",
+  "seeds": [
+    "/index.php/monthly-release",
+    "/index.php/import",
+    "/index.php/component/content/category/109-export",
+    "/index.php/home-lock"
+  ],
+  "nav_noise": "^(export|import|stocks|production|yield|area|prices?|summary)\\s+\\d{4}$",
+  "families": [
+    {
+      "id": "export_monthly",
+      "priority": "p0",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_export_monthly",
+      "title": "monthly\\s+export\\s+of\\s+oil\\s+palm\\s+products"
+    },
+    {
+      "id": "export_ports",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "palm\\s+oil\\s+export\\s+by\\s+major\\s+ports"
+    },
+    {
+      "id": "import_monthly",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "monthly\\s+import\\s+of\\s+oil\\s+palm\\s+products"
+    },
+    {
+      "id": "stocks",
+      "priority": "p0",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "monthly\\s+closing\\s+stock\\s+of\\s+oil\\s+palm\\s+products"
+    },
+    {
+      "id": "refinery_stocks",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "stock\\s+of\\s+selected\\s+processed\\s+palm\\s+oil\\s+at\\s+refinery"
+    },
+    {
+      "id": "cpo_production",
+      "priority": "p0",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "production\\s+of\\s+crude\\s+palm\\s+oil(?!\\s+and)"
+    },
+    {
+      "id": "oer",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "oil\\s+extraction\\s+rate|\\boer\\b"
+    },
+    {
+      "id": "yield",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "ffb\\s+yield\\s*(&|and)\\s*crude\\s+palm\\s+oil\\s+yield"
+    },
+    {
+      "id": "area",
+      "priority": "p2",
+      "grain": "year",
+      "freq": "annual",
+      "parser": "parse_generic_table",
+      "title": "planted\\s+area|oil\\s+palm\\s+area"
+    },
+    {
+      "id": "sectoral",
+      "priority": "p1",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "sectoral\\s+status|ffb\\s+received|capacity\\s+utilisation"
+    },
+    {
+      "id": "seeds",
+      "priority": "p2",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "germinated\\s+seed|seedling"
+    },
+    {
+      "id": "prices_weekly",
+      "priority": "p1",
+      "grain": "week",
+      "freq": "weekly",
+      "parser": "parse_generic_table",
+      "title": "weekly\\s+price"
+    },
+    {
+      "id": "export_duties",
+      "priority": "p2",
+      "grain": "month",
+      "freq": "monthly",
+      "parser": "parse_generic_table",
+      "title": "export\\s+duty|duties"
+    },
+    {
+      "id": "summary_annual",
+      "priority": "p2",
+      "grain": "year",
+      "freq": "annual",
+      "parser": "parse_generic_table",
+      "title": "summary\\s+of\\s+the\\s+malaysian\\s+palm\\s+oil\\s+industry"
+    }
+  ]
+}
