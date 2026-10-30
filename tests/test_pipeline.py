@@ -287,6 +287,7 @@ def test_issues_endpoint_reads_readme_table():
     rows = api.issues()
     assert len(rows) >= 15 and rows[0]["n"] == 1 and "`" not in rows[0]["issue"] and rows[0]["where"]
     assert all(r["title"] and len(r["title"]) <= 95 and not r["title"].endswith("(P") for r in rows)
+    assert all(not r["issue"].startswith(r["title"]) for r in rows)        # the body must not repeat the title
 
 
 def test_destination_reports_are_classified_and_generic_parse_handles_countries():
