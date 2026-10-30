@@ -25,7 +25,7 @@ NUM = re.compile(r"^\(?-?[\d,]+(\.\d+)?\)?$")
 UNITS = {"TONNES": "tonnes", "RM MIL": "MYR_mil", "RM MILLION": "MYR_mil", "HECTARES": "ha",
          "HA": "ha", "RM/TONNE": "MYR/t", "RM": "MYR", "%": "%", "PERCENT": "%"}
 # how a family's monthly values roll up (stocks are snapshots, flows add, rates average)
-AGG = {"stocks": "last", "refinery_stocks": "last", "oer": "avg", "yield": "avg", "prices_weekly": "avg",
+AGG = {"stocks": "last", "refinery_stocks": "last", "oer": "avg", "yield": "sum", "prices_weekly": "avg",
        "area": "last", "seeds": "sum"}
 P0 = ["export_monthly", "stocks", "cpo_production"]
 # families whose reports are not parsed correctly yet (never loaded: bad data is worse than none)
@@ -190,18 +190,22 @@ def parse_report(html: str) -> tuple[str, pd.DataFrame]:
     return title, df
 
 
-def to_obs(family: str, df: pd.DataFrame, source: str, table: str = "") -> tuple[pd.DataFrame, list[dict]]:
+def to_obs(family: str, df: pd.DataFrame, source: str, table: str = "", annual: bool = False) -> tuple[pd.DataFrame, list[dict]]:
     d = df.copy()
     d["series_key"] = ("bepi:" + family + ":" + table + ":" + d["section"].map(slug) + ":" + d["label"].map(slug) + ":" + d["unit"].map(slug)
                        ).str.replace(r":{2,}", ":", regex=True)
-    d["period_start"] = [date(int(y), int(m), 1) for y, m in zip(d["year"], d["month"])]
-    d["period_end"] = [date(int(y), int(m), calendar.monthrange(int(y), int(m))[1]) for y, m in zip(d["year"], d["month"])]
-    obs = d.assign(granularity="m", status="actual", coverage=1.0, source_url=source)[
+    if annual:                                        # point-in-time annual figures (e.g. planted area at December)
+        d["period_start"] = [date(int(y), 1, 1) for y in d["year"]]
+        d["period_end"] = [date(int(y), 12, 31) for y in d["year"]]
+    else:
+        d["period_start"] = [date(int(y), int(m), 1) for y, m in zip(d["year"], d["month"])]
+        d["period_end"] = [date(int(y), int(m), calendar.monthrange(int(y), int(m))[1]) for y, m in zip(d["year"], d["month"])]
+    obs = d.assign(granularity="y" if annual else "m", status="actual", coverage=1.0, source_url=source)[
         ["series_key", "period_start", "period_end", "granularity", "value", "unit", "status", "coverage", "source_url"]]
     agg = AGG.get(family, "sum")
     series = [{"series_key": k, "dataset": "bepi:" + family, "measure": "stock" if agg == "last" else "volume",
                "product": g.iloc[0]["label"], "geography": g.iloc[0]["section"] or "Malaysia",
-               "unit": g.iloc[0]["unit"], "agg_rule": agg, "native_freq": "monthly"}
+               "unit": g.iloc[0]["unit"], "agg_rule": agg, "native_freq": "annual" if annual else "monthly"}
               for k, g in d.groupby("series_key")]
     return obs, series
 
@@ -264,8 +268,12 @@ def rebuild(con=None) -> dict:
     for meta_f in sorted((common.RAW / "bepi").glob("*.json")):
         m = json.loads(meta_f.read_text())
         try:
-            _, df = parse_report(meta_f.with_suffix(".html").read_text())
-            obs, series = to_obs(m["family"], df, m["url"], m["table"])
+            if m.get("kind") == "pdf":
+                import pdf_reports
+                df, annual = pdf_reports.parse_pdf_text(pdf_reports.pdf_text(meta_f.with_suffix(".pdf").read_bytes()))
+            else:
+                (_, df), annual = parse_report(meta_f.with_suffix(".html").read_text()), False
+            obs, series = to_obs(m["family"], df, m["url"], m["table"], annual)
             common.register_series(con, series)
             for k, v in common.upsert_obs(con, obs).items():
                 stats[k] += v

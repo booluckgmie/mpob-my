@@ -102,3 +102,77 @@ def exact_balance(stock: pd.DataFrame, production: float, imports: float, export
             "implied_domestic_use": round(disappearance - exports),
             "stock_usage_annualised_pct": round(close / (disappearance * 12) * 100, 1),
             "stock_cover_months_of_exports": round(close / exports, 2), "opening_source": "published stock history"}
+
+
+# ---------------------------------------------------------------- overview (plain-language layer)
+import calendar as _cal
+
+
+def _pct(now: float, before) -> float | None:
+    return None if before in (None, 0) or pd.isna(before) else round((now / before - 1) * 100, 1)
+
+
+def kpi(key: str, label: str, plain: str, unit: str, df: pd.DataFrame, *, annual: bool = False,
+        scale: float = 1.0, matters: str = "") -> dict | None:
+    """One headline number with its change and a sparkline. df: period_start, value."""
+    d = df.dropna(subset=["value"]).copy()
+    if d.empty:
+        return None
+    d["period_start"] = pd.to_datetime(d["period_start"])
+    d = d.sort_values("period_start").drop_duplicates("period_start", keep="last")
+    last = d.iloc[-1]
+    ts, v = last["period_start"], float(last["value"])
+
+    def at(offset):
+        m = d[d["period_start"] == ts - offset]["value"]
+        return None if m.empty else float(m.iloc[0])
+
+    return {"key": key, "label": label, "plain": plain, "unit": unit, "matters": matters,
+            "value": round(v * scale, 4), "period": str(ts.year) if annual else ts.strftime("%Y-%m"),
+            "period_label": str(ts.year) if annual else f"{_cal.month_name[ts.month]} {ts.year}",
+            "mom_pct": None if annual else _pct(v, at(pd.DateOffset(months=1))),
+            "yoy_pct": _pct(v, at(pd.DateOffset(years=1))),
+            "spark": [round(float(x) * scale, 4) for x in d["value"].tail(24 if not annual else 12)]}
+
+
+def _dir(p):
+    return "flat" if p is None or abs(p) < 0.5 else ("up" if p > 0 else "down")
+
+
+def insights(k: dict, production_band: dict | None, balance: dict | None) -> list[dict]:
+    """Plain sentences for non-specialists. Facts and direction only - no good/bad judgement,
+    because a rise in price or stocks means different things to a planter, a refiner and a buyer."""
+    out = []
+    p = k.get("production")
+    if p:
+        pos = (production_band or {}).get("position")
+        extra = {"above band": " That is higher than usual for the month.", "below band": " That is lower than usual for the month.",
+                 "within band": " That is in line with what is usual for the month."}.get(pos, "")
+        out.append({"icon": "palm", "topic": "Supply", "tone": _dir(p["yoy_pct"]),
+                    "text": f"Malaysia produced {p['value']:.2f} million tonnes of crude palm oil in {p['period_label']}, "
+                            + (f"{abs(p['yoy_pct'])}% {'more' if p['yoy_pct'] > 0 else 'less'} than a year earlier." if p["yoy_pct"] is not None else "")
+                            + extra})
+    e = k.get("exports")
+    if e:
+        out.append({"icon": "ship", "topic": "Demand", "tone": _dir(e["yoy_pct"]),
+                    "text": f"Palm oil exports were {e['value']:.2f} million tonnes"
+                            + (f", {abs(e['yoy_pct'])}% {'above' if e['yoy_pct'] > 0 else 'below'} the same month last year." if e["yoy_pct"] is not None else ".")})
+    s = k.get("stocks")
+    if s:
+        cover = (balance or {}).get("stock_cover_months_of_exports")
+        out.append({"icon": "tank", "topic": "Stocks", "tone": _dir(s["mom_pct"]),
+                    "text": f"Stocks held in the country are {s['value']:.2f} million tonnes, "
+                            + (f"{abs(s['mom_pct'])}% {'more' if s['mom_pct'] > 0 else 'less'} than the month before" if s["mom_pct"] is not None else "")
+                            + (f" - roughly {cover} months' worth of exports." if cover else ".")})
+    pr = k.get("price")
+    if pr:
+        out.append({"icon": "coin", "topic": "Price", "tone": _dir(pr["mom_pct"]),
+                    "text": f"Crude palm oil costs RM {pr['value']:,.0f} per tonne ({pr['period_label']}), "
+                            + (f"{'up' if pr['mom_pct'] > 0 else 'down'} {abs(pr['mom_pct'])}% over the past month" if pr["mom_pct"] is not None else "")
+                            + (f" and {'up' if pr['yoy_pct'] > 0 else 'down'} {abs(pr['yoy_pct'])}% over the year." if pr["yoy_pct"] is not None else ".")})
+    a = k.get("area")
+    if a:
+        out.append({"icon": "leaf", "topic": "Land", "tone": _dir(a["yoy_pct"]),
+                    "text": f"Oil palm covers {a['value']:.2f} million hectares ({a['period_label']})"
+                            + (f", {abs(a['yoy_pct'])}% {'more' if a['yoy_pct'] > 0 else 'less'} than the year before." if a["yoy_pct"] is not None else ".")})
+    return out

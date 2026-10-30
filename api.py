@@ -1,5 +1,6 @@
 """Read API over the lake.   uvicorn api:app --port 8000   (dashboard served at /)"""
 from __future__ import annotations
+import re
 import threading
 from datetime import date
 from pathlib import Path
@@ -14,8 +15,8 @@ import common
 app = FastAPI(title="MPOB-MY lake API", version="1.0")
 VIEWS = {"daily": "v_daily", "weekly": "v_weekly", "monthly": "v_monthly", "quarterly": "v_quarterly"}
 # days since newest period_end before a series is flagged STALE
-STALE_AFTER = {"daily": 7, "monthly": 45}
-DUE_AFTER = {"daily": 4, "monthly": 35}
+STALE_AFTER = {"daily": 7, "monthly": 45, "annual": 500}
+DUE_AFTER = {"daily": 4, "monthly": 35, "annual": 430}
 LAG_EXTRA = {"dosm": 35}
 STOCK_KEY = "bepi:stocks:monthly_closing_stock_of_oil_palm_products:crude_palm_oil:total_palm_oil:tonnes"    # DOSM publishes ~2 months behind the data month
 
@@ -137,28 +138,31 @@ def analytics_endpoint(key: str = "mpob:cpo_daily"):
         con.close()
 
 
-SPATIAL = {   # metric -> (series-key prefix, label, unit, diverging?)
-    "production": ("bepi:cpo_production:production_of_crude_palm_oil:", "CPO production", "tonnes", False),
-    "oer": ("bepi:oer:oil_extraction_rate_of_crude_palm_oil:", "Oil extraction rate (CPO)", "%", True),
-    "ffb": ("bepi:sectoral:ffb_received_by_mill:", "FFB received by mills", "tonnes", False),
+SPATIAL = {   # metric -> (series-key prefix, label, unit, diverging?, state position in key, annual?)
+    "production": ("bepi:cpo_production:production_of_crude_palm_oil:", "CPO production", "tonnes", False, 4, False),
+    "oer": ("bepi:oer:oil_extraction_rate_of_crude_palm_oil:", "Oil extraction rate (CPO)", "%", True, 4, False),
+    "ffb": ("bepi:sectoral:ffb_received_by_mill:", "FFB received by mills", "tonnes", False, 4, False),
+    "yield": ("bepi:yield:ffb_yield:", "FFB yield (estates)", "t/ha", True, 4, False),
+    "area": ("bepi:area:planted_area:total:", "Planted area", "ha", False, 5, True),
 }
 AGGREGATES = {"malaysia", "p_malaysia", "sabah_sarawak"}
 
 
 @app.get("/v1/spatial")
-def spatial(metric: str = Query("production", pattern="^(production|oer|ffb)$"), period: str | None = None):
+def spatial(metric: str = Query("production", pattern="^(production|oer|ffb|yield|area)$"), period: str | None = None):
     """Latest (or given) month by state; YoY, share of national (volumes) or gap to national (rates)."""
-    prefix, label, unit, diverging = SPATIAL[metric]
+    prefix, label, unit, diverging, pos, annual = SPATIAL[metric]
     con = db()
     try:
-        df = con.execute("""SELECT split_part(series_key, ':', 4) AS state, strftime(period_start, '%Y-%m') AS period, value
-                            FROM v_obs_latest WHERE series_key LIKE ? AND granularity = 'm' AND value IS NOT NULL""",
-                         [prefix + "%"]).df()
+        df = con.execute(f"""SELECT split_part(series_key, ':', {pos}) AS state,
+                                   strftime(period_start, '{'%Y' if annual else '%Y-%m'}') AS period, value
+                            FROM v_obs_latest WHERE series_key LIKE ? AND granularity = '{'y' if annual else 'm'}'
+                              AND value IS NOT NULL""", [prefix + "%"]).df()
         if df.empty:
             raise HTTPException(404, f"no data for {metric} yet")
         period = period or df["period"].max()
         cur = df[df["period"] == period].set_index("state")["value"]
-        prev_p = f"{int(period[:4]) - 1}{period[4:]}"
+        prev_p = f"{int(period[:4]) - 1}{period[4:]}"          # same month (or year) one year earlier
         prev = df[df["period"] == prev_p].set_index("state")["value"]
         nat = cur.get("malaysia")
         out = []
@@ -186,13 +190,84 @@ def _family(key: str) -> str:
     return f"{p[0]}:{p[1]}" if p[0] == "bepi" else (f"{p[0]}:{p[1]}" if p[0] in ("mpob", "dosm") else key)
 
 
+KPI_SPECS = [   # name, key or loader, label, plain-English, unit label, scale, annual, who cares
+    ("price", "mpob:cpo_daily", "CPO price", "What a tonne of crude palm oil sells for in Malaysia", "RM / tonne", 1, False,
+     "traders, refiners, buyers"),
+    ("production", "bepi:cpo_production:production_of_crude_palm_oil:malaysia:tonnes", "Production",
+     "Crude palm oil made by Malaysian mills this month", "million tonnes", 1e-6, False, "planters, traders, analysts"),
+    ("exports", "bepi:export_monthly:monthly_export_of_oil_palm_products:palm_oil:tonnes", "Exports",
+     "Palm oil shipped abroad this month", "million tonnes", 1e-6, False, "traders, shippers, policy"),
+    ("stocks", "bepi:stocks:monthly_closing_stock_of_oil_palm_products:crude_palm_oil:total_palm_oil:tonnes", "Stocks",
+     "Palm oil sitting in tanks at the end of the month", "million tonnes", 1e-6, False, "traders, refiners, policy"),
+    ("yield", "bepi:yield:ffb_yield:malaysia:t_ha", "Fruit yield",
+     "Fresh fruit bunches harvested per hectare in a month (estates)", "t / ha", 1, False, "planters, agronomists"),
+    ("area", "bepi:area:planted_area:total:malaysia:ha", "Planted area",
+     "Land under oil palm at December each year", "million ha", 1e-6, True, "policy, planters, researchers"),
+]
+
+
+@app.get("/v1/overview")
+def overview():
+    """Headline numbers with sparklines and plain-language sentences, for the dashboard's first screen."""
+    con = db()
+    try:
+        k = {}
+        for name, key, label, plain, unit, scale, annual, matters in KPI_SPECS:
+            if name == "price":
+                df = con.execute("SELECT strptime(period, '%Y-%m') AS period_start, value FROM v_monthly WHERE series_key = ?", [key]).df()
+                daily = con.execute("SELECT CAST(period AS TIMESTAMP) AS period_start, value FROM v_daily WHERE series_key = ? "
+                                    "AND value IS NOT NULL ORDER BY period DESC LIMIT 1", [key]).df()
+                item = analytics.kpi(name, label, plain, unit, df, scale=scale, matters=matters)
+                if item and not daily.empty:        # headline = latest trading day, with changes measured on daily prices
+                    item["value"] = float(daily["value"].iloc[0])
+                    item["period_label"] = daily["period_start"].iloc[0].strftime("%d %b %Y")
+                    alld = con.execute("SELECT CAST(period AS TIMESTAMP) AS date, value FROM v_daily WHERE series_key = ? "
+                                       "AND value IS NOT NULL", [key]).df()
+                    ch = analytics.price_stats(alld).get("change_pct", {})
+                    item["mom_pct"] = None if ch.get("1m") is None else round(ch["1m"], 1)
+                    item["yoy_pct"] = None if ch.get("12m") is None else round(ch["12m"], 1)
+            else:
+                df = con.execute("SELECT period_start, value FROM v_obs_latest WHERE series_key = ? AND granularity = ?",
+                                 [key, "y" if annual else "m"]).df()
+                item = analytics.kpi(name, label, plain, unit, df, annual=annual, scale=scale, matters=matters)
+            if item:
+                k[name] = item
+        band = None
+        prod = con.execute("SELECT period_start, value FROM v_obs_latest WHERE series_key = ? AND granularity = 'm'",
+                           [KPI_SPECS[1][1]]).df()
+        if not prod.empty:
+            band = analytics.production_band(prod)
+        bal = analytics_endpoint()["balance"] if k else None
+        return {"kpis": list(k.values()), "insights": analytics.insights(k, band, bal), "status": "derived"}
+    finally:
+        con.close()
+
+
+@app.get("/v1/issues")
+def issues():
+    """Known data issues, read from the README table so the page and the docs cannot drift apart."""
+    clean = lambda t: re.sub(r"[`*]", "", t).strip()
+    out = []
+    for line in (Path(__file__).parent / "README.md").read_text().splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) >= 4 and cells[0].isdigit():
+            m = re.match(r"\*\*(.+?)\*\*\s*(.*)", cells[1])
+            title, detail = (m.group(1), m.group(2)) if m else (cells[1], "")
+            title = title.rstrip(".")
+            if title.endswith(":"):                      # "Not loaded:" is not a title on its own
+                title = title.rstrip(":") + " (see details)"
+            out.append({"n": int(cells[0]), "title": clean(title), "issue": clean(f"{title} {detail}" if m else cells[1]),
+                        "where": clean(cells[2]), "effect": clean(" | ".join(cells[3:]))})
+    return out
+
+
 @app.get("/v1/freshness")
 def freshness(detail: bool = False):
     """FRESH / DUE / STALE per dataset family (newest period across its series); detail=true lists every series."""
     con = db()
     try:
         today = date.today()
-        rows = _rows(con, "SELECT series_key, dataset, native_freq, last_period, last_ingested FROM v_coverage")
+        rows = _rows(con, "SELECT series_key, dataset, native_freq, first_period, last_period, last_ingested FROM v_coverage")
         if not detail:
             fam = {}
             for r in rows:
@@ -200,9 +275,11 @@ def freshness(detail: bool = False):
                     continue
                 k = _family(r["series_key"])
                 cur = fam.get(k)
+                first = min(r["first_period"], cur["first_period"]) if cur else r["first_period"]
                 if cur is None or r["last_period"] > cur["last_period"]:
                     fam[k] = {**r, "series_key": k, "n_series": 0}
                 fam[k]["n_series"] = (cur["n_series"] if cur else 0) + 1
+                fam[k]["first_period"] = first
             rows = list(fam.values())
         out = []
         for r in rows:
