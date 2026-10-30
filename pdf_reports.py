@@ -22,6 +22,18 @@ FAMILIES = ["yield", "area"]
 NUM_RE = re.compile(r"^-?[\d,]*\.?\d+$")
 
 
+# the same state appears under different names across years and datasets; map to one canonical label
+# (canonical forms match the HTML reports: "P. MALAYSIA", "SABAH/SARAWAK")
+ALIASES = {"JOHORE": "JOHOR", "MALACCA": "MELAKA", "PENANG": "PULAU PINANG", "N. SEMBILAN": "NEGERI SEMBILAN",
+           "N.SEMBILAN": "NEGERI SEMBILAN", "PENINSULAR MALAYSIA": "P. MALAYSIA", "SEMENANJUNG MALAYSIA": "P. MALAYSIA", "SEMENANJUNG": "P. MALAYSIA", "PENINSULAR": "P. MALAYSIA",
+           "SABAH & SARAWAK": "SABAH/SARAWAK", "SABAH AND SARAWAK": "SABAH/SARAWAK", "W.P. KUALA LUMPUR": "KUALA LUMPUR"}
+
+
+def norm_label(label: str) -> str:
+    u = " ".join(label.upper().split())
+    return ALIASES.get(u, u)
+
+
 def pdf_text(content: bytes) -> str:
     import pdfplumber
     with pdfplumber.open(io.BytesIO(content)) as pdf:
@@ -49,16 +61,19 @@ def parse_yield_text(text: str) -> pd.DataFrame:
         ms = [br._month(t) for t in toks]
         if sum(m is not None for m in ms) >= 3 and "MONTH" not in lines[i].upper():
             months = [m for m in ms if m]
-            yr = [int(t) for t in lines[i + 1].split() if re.fullmatch(r"(19|20)\d\d", t)] if i + 1 < len(lines) else []
-            if len(yr) < 2 * len(months):
-                raise ValueError(f"year row does not cover {len(months)} months: {lines[i + 1][:60]!r}")
-            years = yr[: 2 * len(months)]
-            i += 2
+            years = []
+            for k in range(1, 4):                       # a "State" caption line can sit between the two rows
+                yr = [int(t) for t in lines[i + k].split() if re.fullmatch(r"(19|20)\d\d", t)] if i + k < len(lines) else []
+                if len(yr) >= 2 * len(months):
+                    years, i = yr[: 2 * len(months)], i + k + 1
+                    break
+            if not years:
+                raise ValueError(f"year row does not cover {len(months)} months after {lines[i][:50]!r}")
             continue
         if months:
             parsed = _split_row(lines[i])
             if parsed and len(parsed[1]) == 2 * len(months) + 2 and not lines[i].upper().startswith("NOTE"):
-                label, vals = parsed
+                label, vals = norm_label(parsed[0]), parsed[1]
                 for k in range(len(months)):
                     for j in range(2):
                         rows.append(dict(section="", label=label, unit=unit, year=years[2 * k + j],
@@ -69,17 +84,35 @@ def parse_yield_text(text: str) -> pd.DataFrame:
     return pd.DataFrame(rows).drop_duplicates(["label", "year", "month"], keep="last")
 
 
+def _area_values(tokens: list[str]) -> list[float] | None:
+    """[matured, immature, total] hectares from a row whose percentage cells may be whole numbers or split
+    ("8 7.58" = 87.58). The areas are the integers where matured + immature = total (largest such total wins),
+    which both locates them and checks the row."""
+    ints = [float(t.replace(",", "")) for t in tokens if re.fullmatch(r"\d[\d,]*", t)]
+    best = None
+    for i in range(len(ints)):
+        for j in range(i + 1, len(ints)):
+            for k in range(j + 1, len(ints)):
+                if abs(ints[i] + ints[j] - ints[k]) <= 2 and ints[k] >= 100 and (best is None or ints[k] > best[2]):
+                    best = [ints[i], ints[j], ints[k]]
+    return best
+
+
 def parse_area_text(text: str) -> pd.DataFrame:
     m = re.search(r"AS AT\s+([A-Z]+)\s+((?:19|20)\d\d)", text.upper())
     if not m:
         raise ValueError("planted-area heading not found")
     year = int(m.group(2))
-    rows = []
+    rows, seen = [], set()
     for line in text.splitlines():
-        parsed = _split_row(line.strip())
-        if parsed and len(parsed[1]) == 6 and parsed[0].upper() not in ("STATE",):
-            label, v = parsed
-            for name, val in (("matured", v[0]), ("immature", v[2]), ("total", v[4])):
+        toks = line.split()
+        k = next((i for i, t in enumerate(toks) if re.fullmatch(r"\d[\d,]*", t)), None)
+        if not k:
+            continue
+        label, v = norm_label(" ".join(toks[:k])), _area_values(toks[k:])
+        if v and label not in ("STATE", "REGION") and label not in seen:
+            seen.add(label)
+            for name, val in (("matured", v[0]), ("immature", v[1]), ("total", v[2])):
                 rows.append(dict(section=name, label=label, unit="ha", year=year, month=12, value=val))
     if not rows:
         raise ValueError("no planted-area rows parsed")
@@ -88,7 +121,7 @@ def parse_area_text(text: str) -> pd.DataFrame:
 
 def parse_pdf_text(text: str) -> tuple[pd.DataFrame, bool]:
     """Return (long df, is_annual). Dispatch on content, not filename."""
-    if re.search(r"PLANTED AREA", text.upper()) and re.search(r"AS AT", text.upper()):
+    if re.search(r"PLANTED AREA", text.upper()) and re.search(r"AS AT", text.upper()):  # (area PDFs may also hold a 2nd table)
         return parse_area_text(text), True
     return parse_yield_text(text), False
 
@@ -117,7 +150,12 @@ def sync(families: list[str], since: int, con=None) -> dict:
         try:
             for url, label in pdf_links(r["url"]):
                 time.sleep(2)
-                content = common.http_get(url).content
+                try:
+                    content = common.http_get(url, retries=2).content
+                except RuntimeError:                      # linked but not uploaded yet (e.g. next year's area summary)
+                    stats["no_data"] = stats.get("no_data", 0) + 1
+                    print(f"NO DATA {r['family']} {r['year']} {label}: PDF not available at source", file=sys.stderr)
+                    continue
                 # stable per-dataset name: the page title changes every year, the series must not
                 table = ("planted_area" if r["family"] == "area"
                          else "ffb_yield" if "ffb" in (label + url).lower() else "oil_yield")
@@ -154,7 +192,7 @@ def selftest() -> int:
          "Johor 1.46 1.37 1.27 1.20 1.37 1.29 1.49 1.62 1.70 1.62 1.63 1.67 8.92 8.77\n"
          "Negeri Sembilan 1.32 1.08 1.16 1.12 1.32 1.37 1.44 1.76 1.76 1.76 1.81 1.78 8.81 8.87\nNote: Estates")
     df = parse_yield_text(y)
-    assert len(df) == 24 and set(df.label) == {"Johor", "Negeri Sembilan"} and df.value.max() < 2.0
+    assert len(df) == 24 and set(df.label) == {"JOHOR", "NEGERI SEMBILAN"} and df.value.max() < 2.0
     a = "PLANTED AREA\nOIL PALM PLANTED AREA AS AT DECEMBER 2025 (HECTARES)\nSTATE MATURED % IMMATURE % TOTAL %\nJOHOR 615,836 91.2 59,722 8.8 675,558 11.9"
     df, annual = parse_pdf_text(a)
     assert annual and df[df.section == "total"].value.iloc[0] == 675558 and set(df.year) == {2025}

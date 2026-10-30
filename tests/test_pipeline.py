@@ -214,7 +214,7 @@ def test_pdf_yield_and_area_parse_real_extracts():
     a, annual = pdf_reports.parse_pdf_text((FX / "area_2025.txt").read_text())
     assert annual and set(a.year) == {2025}
     tot = a[a.section == "total"].set_index("label")["value"]
-    states = tot.drop(["MALAYSIA", "PENINSULAR MALAYSIA", "SABAH & SARAWAK"])
+    states = tot.drop(["MALAYSIA", "P. MALAYSIA", "SABAH/SARAWAK"])
     assert tot["MALAYSIA"] == 5700050 and states.sum() == tot["MALAYSIA"]
     assert "NEGERI SEMBILAN" in tot.index                              # spaces survive extraction
 
@@ -225,3 +225,35 @@ def test_annual_obs_use_year_granularity(con):
     obs, series = bepi_reports.to_obs("area", a, "test", "planted_area", annual)
     assert set(obs.granularity) == {"y"} and str(obs.period_start.iloc[0]) == "2025-01-01"
     assert {s["native_freq"] for s in series} == {"annual"}
+
+
+def test_pdf_area_old_layout_split_digits_and_aliases():
+    import pdf_reports
+    text = ("Oil Palm Planted Area By States As At December 2013 (Hectares)\nState Mature % Immature % Total %\n"
+            "Johore 639,946 8 7.58 90,748 1 2.42 730,694 1 3.97\nMalacca 49,635 9 4.18 3,069 5 .82 52,704 1 .01\n"
+            "Perlis 190 6 8.35 88 3 1.65 278 0 .01\nMalaysia 4,526,089 8 6.55 703,650 1 3.45 5,229,739 1 00.00\n"
+            "Bogus 100 1.0 200 2.0 999 3.0")
+    df, annual = pdf_reports.parse_pdf_text(text)
+    tot = df[df.section == "total"].set_index("label")["value"]
+    assert annual and tot["JOHOR"] == 730694 and tot["MELAKA"] == 52704 and tot["PERLIS"] == 278
+    assert "BOGUS" not in tot.index                                   # matured + immature must equal total
+
+
+def test_pdf_yield_year_row_after_state_caption():
+    import pdf_reports
+    text = ("AVERAGE FFB YIELD\nJAN-JUNE 2020 & 2019 (TONNES/HECTARE)\nJan Feb Mar April May June January-June\nState\n"
+            "2020 2019 2020 2019 2020 2019 2020 2019 2020 2019 2020 2019 2020 2019\n"
+            "N. Sembilan 0.76 1.56 1.07 1.48 1.23 1.69 1.53 1.80 1.54 1.83 1.77 1.58 7.90 9.94\n"
+            "P. Malaysia 0.96 1.62 1.15 1.44 1.30 1.55 1.57 1.59 1.49 1.54 1.84 1.45 8.31 9.19")
+    df, _ = pdf_reports.parse_pdf_text(text)
+    assert set(df.label) == {"NEGERI SEMBILAN", "P. MALAYSIA"} and set(df.year) == {2019, 2020}
+
+
+def test_pdf_area_integer_percentages():
+    import pdf_reports
+    text = ("OIL PALM PLANTED AREA BY STATE AS AT DECEMBER 2016 (HECTARES)\nState Mature % Immature % Total %\n"
+            "Johore 678,508 91 67,122 9 745,630 13\nPerlis 603 92.5 49 7.5 652 0\n"
+            "MALAYSIA 5,001,438 87.2 736,547 12.8 5,737,985 100")
+    df, _ = pdf_reports.parse_pdf_text(text)
+    tot = df[df.section == "total"].set_index("label")["value"]
+    assert tot["JOHOR"] == 745630 and tot["PERLIS"] == 652 and tot["MALAYSIA"] == 5737985
