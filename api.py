@@ -137,6 +137,50 @@ def analytics_endpoint(key: str = "mpob:cpo_daily"):
         con.close()
 
 
+SPATIAL = {   # metric -> (series-key prefix, label, unit, diverging?)
+    "production": ("bepi:cpo_production:production_of_crude_palm_oil:", "CPO production", "tonnes", False),
+    "oer": ("bepi:oer:oil_extraction_rate_of_crude_palm_oil:", "Oil extraction rate (CPO)", "%", True),
+    "ffb": ("bepi:sectoral:ffb_received_by_mill:", "FFB received by mills", "tonnes", False),
+}
+AGGREGATES = {"malaysia", "p_malaysia", "sabah_sarawak"}
+
+
+@app.get("/v1/spatial")
+def spatial(metric: str = Query("production", pattern="^(production|oer|ffb)$"), period: str | None = None):
+    """Latest (or given) month by state; YoY, share of national (volumes) or gap to national (rates)."""
+    prefix, label, unit, diverging = SPATIAL[metric]
+    con = db()
+    try:
+        df = con.execute("""SELECT split_part(series_key, ':', 4) AS state, strftime(period_start, '%Y-%m') AS period, value
+                            FROM v_obs_latest WHERE series_key LIKE ? AND granularity = 'm' AND value IS NOT NULL""",
+                         [prefix + "%"]).df()
+        if df.empty:
+            raise HTTPException(404, f"no data for {metric} yet")
+        period = period or df["period"].max()
+        cur = df[df["period"] == period].set_index("state")["value"]
+        prev_p = f"{int(period[:4]) - 1}{period[4:]}"
+        prev = df[df["period"] == prev_p].set_index("state")["value"]
+        nat = cur.get("malaysia")
+        out = []
+        for st, v in cur.items():
+            row = {"state": st, "value": float(v),
+                   "yoy_pct": None if st not in prev else round((v / prev[st] - 1) * 100, 1),
+                   "aggregate": st in AGGREGATES}
+            if nat:
+                row["share_pct"] = None if diverging else round(v / nat * 100, 1)
+                row["vs_national"] = round(float(v - nat), 2) if diverging else None
+            out.append(row)
+        return {"metric": metric, "label": label, "unit": unit, "diverging": diverging, "period": period,
+                "national": None if nat is None else float(nat), "states": out, "status": "actual (as reported by MPOB)"}
+    finally:
+        con.close()
+
+
+@app.get("/boundaries/my_states.geojson")
+def boundaries():
+    return FileResponse(Path(__file__).parent / "dashboard" / "my_states.geojson", media_type="application/geo+json")
+
+
 @app.get("/v1/freshness")
 def freshness():
     """FRESH / DUE / STALE per series by days since its newest period_end."""

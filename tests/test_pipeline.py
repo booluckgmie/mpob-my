@@ -176,3 +176,30 @@ def test_production_band_and_exact_balance():
     stock = pd.DataFrame({"period_start": pd.to_datetime(["2024-02-01", "2024-03-01"]), "value": [1000.0, 1100.0]})
     b = analytics.exact_balance(stock, production=500.0, imports=50.0, exports=300.0)
     assert b["disappearance"] == 450 and b["implied_domestic_use"] == 150
+
+
+def test_spatial_endpoint_shares_yoy_and_boundaries(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    import api, json
+    monkeypatch.setattr(common, "SILVER", tmp_path)
+    monkeypatch.setattr(common, "DB_PATH", tmp_path / "sp.duckdb")
+    monkeypatch.setattr(api, "_CON", None)
+    c = common.connect()
+    pre = "bepi:cpo_production:production_of_crude_palm_oil:"
+    rows, series = [], []
+    for st, now, before in [("johor", 300.0, 250.0), ("sabah", 500.0, 500.0), ("malaysia", 800.0, 750.0)]:
+        series.append(dict(series_key=pre + st + ":tonnes", dataset="bepi", measure="volume", product=st,
+                           geography="", unit="tonnes", agg_rule="sum", native_freq="monthly"))
+        for per, v in (("2025-09-01", before), ("2026-09-01", now)):
+            rows.append(dict(series_key=pre + st + ":tonnes", period_start=per, period_end=per, granularity="m",
+                             value=v, unit="tonnes", status="actual"))
+    common.register_series(c, series)
+    common.upsert_obs(c, pd.DataFrame(rows))
+    c.close()
+    t = TestClient(api.app)
+    d = t.get("/v1/spatial?metric=production").json()
+    by = {s["state"]: s for s in d["states"]}
+    assert d["period"] == "2026-09" and by["johor"]["share_pct"] == 37.5 and by["johor"]["yoy_pct"] == 20.0
+    assert by["malaysia"]["aggregate"] and t.get("/v1/spatial?metric=oer").status_code == 404
+    g = t.get("/boundaries/my_states.geojson").json()
+    assert {f["properties"]["bepi"] for f in g["features"]} >= {"JOHOR", "SABAH", "OTHER STATES"}
