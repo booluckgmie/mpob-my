@@ -98,3 +98,22 @@ def test_api_endpoints(tmp_path, monkeypatch):
     d = t.get("/v1/series?key=mpob:cpo_daily&freq=monthly").json()["data"]
     assert d[0]["value"] == 4100.0 and d[0]["status"] == "derived"
     assert t.get("/v1/freshness").json()[0]["state"] in {"FRESH", "DUE", "STALE"}
+
+
+def test_balance_backs_out_opening_stock():
+    import analytics
+    b = analytics.balance({"po_stock": {"value": 1100.0, "pct": 10.0}, "cpo_production": {"value": 500.0},
+                           "po_import": {"value": 50.0}, "po_export": {"value": 300.0}})
+    assert b["opening_stock"] == 1000
+    assert b["disappearance"] == 450          # 1000 + 500 + 50 - 1100
+    assert b["implied_domestic_use"] == 150
+    assert analytics.balance({"po_stock": {"value": 1.0}}) is None
+
+
+def test_price_stats_changes_and_seasonality():
+    import analytics
+    days = pd.date_range("2025-01-01", "2026-01-31")
+    df = pd.DataFrame({"date": days, "value": [4000.0 + i for i in range(len(days))]})
+    s = analytics.price_stats(df)
+    assert s["latest"]["value"] == df["value"].iloc[-1]
+    assert s["change_pct"]["1m"] > 0 and s["monthly_by_year"][2025][1] < s["monthly_by_year"][2026][1]
