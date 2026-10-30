@@ -52,6 +52,12 @@
     <div class="card"><strong>Supply &amp; demand balance, latest MPOB month <span class="tag">derived</span></strong>
       <div id="bal" style="margin-top:6px"></div></div>
   </div>
+  <h2>Production &amp; states <span class="tag">BEPI reports</span></h2>
+  <div class="two">
+    <div class="card"><strong>CPO production vs same-month history</strong><canvas id="prodchart"></canvas>
+      <div class="note" id="prodnote"></div></div>
+    <div class="card"><strong>Production by state, latest month</strong><div id="states" style="margin-top:6px"></div></div>
+  </div>
   <h2>2027 projection simulator <span class="tag">illustrative, not a forecast</span></h2>
   <div class="two">
     <div class="card">
@@ -148,15 +154,40 @@ async function analytics(){
            data: MON.map((_,m)=>p.monthly_by_year[y][m+1] ?? null) })) },
     options:{ plugins:{ legend:{ position:"bottom" } } } });
   const b = A.balance, el = document.getElementById("bal");
-  if (!b) { el.textContent = "Headline data incomplete."; return; }
+  if (!b) { el.textContent = "Headline data incomplete."; production(); return; }
   const row = (l,v,u="t") => `<div class="stat"><span>${l}</span><span>${typeof v==="number"?fmt(v):v}${u}</span></div>`;
   el.innerHTML = row("Opening stock (derived)", b.opening_stock) + row("+ CPO production", b.production) + row("+ Imports", b.imports) +
     row("&minus; Closing stock", b.closing_stock) + row("= Disappearance", b.disappearance) + row("&nbsp;&nbsp;of which exports", b.exports) +
     row("&nbsp;&nbsp;of which implied domestic", b.implied_domestic_use) +
     row("<strong>Stock/usage (annualised)</strong>", b.stock_usage_annualised_pct, "%") +
     row("<strong>Stock cover</strong>", b.stock_cover_months_of_exports, " months of exports") +
-    `<div class="note">${b.note}</div>`;
-  sim();
+    `<div class="note">${b.note || ("Opening stock: " + b.opening_source)}</div>`;
+  production(); sim();
+}
+
+let prodChart;
+function production(){
+  const p = A.production, el = document.getElementById("prodnote");
+  if (!p || !p.latest) { el.textContent = "No production history yet."; return; }
+  const ser = p.series.slice(-24), css = getComputedStyle(document.documentElement);
+  const band = k => ser.map(x => { const b = p.band_by_month[+x.period.slice(5)]; return b ? b[k] : null; });
+  if (prodChart) prodChart.destroy();
+  prodChart = new Chart(document.getElementById("prodchart"), { type:"line",
+    data:{ labels: ser.map(x=>x.period), datasets:[
+      { label:"p75", data:band("p75"), borderColor:"transparent", backgroundColor:css.getPropertyValue("--line"), pointRadius:0, fill:"+1" },
+      { label:"p25", data:band("p25"), borderColor:"transparent", pointRadius:0 },
+      { label:"CPO production (t)", data:ser.map(x=>x.value), borderColor:css.getPropertyValue("--accent"), pointRadius:2 } ] },
+    options:{ plugins:{ legend:{ labels:{ filter:i=>i.text!=="p25" } } }, scales:{ x:{ ticks:{ maxTicksLimit:8 } } } } });
+  el.textContent = `${p.latest.period}: ${fmt(p.latest.value)} t, ${p.position || "no band"}` +
+    (p.vs_median_pct != null ? ` (${pc(p.vs_median_pct)} vs median of prior years)` : "") +
+    (p.yoy_pct != null ? `, YoY ${pc(p.yoy_pct)}` : "") + ". Shaded band = p25\u2013p75 of the same month in up to 5 prior years.";
+  const real = A.states.filter(s => !["malaysia","p_malaysia","sabah_sarawak"].includes(s.state));
+  const max = Math.max(...real.map(s => s.value));
+  document.getElementById("states").innerHTML = A.states.map(s => {
+    const sub = ["malaysia","p_malaysia","sabah_sarawak"].includes(s.state);
+    return `<div class="stat" style="${sub?"font-weight:650":""}"><span>${s.state.replace(/_/g," ")}</span><span>${fmt(s.value)} <span class="${s.yoy_pct>=0?"up":"down"} pct">${s.yoy_pct==null?"":pc(s.yoy_pct)}</span></span></div>` +
+      (sub ? "" : `<div style="height:4px;background:var(--accent);opacity:.5;width:${(s.value/max*100).toFixed(0)}%;margin-bottom:2px"></div>`);
+  }).join("") + `<div class="note">Period ${A.states[0].period}. YoY vs same month a year earlier.</div>`;
 }
 const clamp = (x,a,b) => Math.min(b, Math.max(a, x));
 function simModel(oni, lag, b50, a, stockNow, px){

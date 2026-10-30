@@ -18,7 +18,7 @@ import pandas as pd
 
 MOM_TOL = 3.0     # percentage points
 YOY_TOL = 5.0
-MPOB_KEY = "mpob:headline:cpo_production"
+MPOB_KEY = "bepi:cpo_production:production_of_crude_palm_oil:malaysia:tonnes"
 DOSM_KEY = "dosm:ipi:104"
 
 

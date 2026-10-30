@@ -16,7 +16,8 @@ VIEWS = {"daily": "v_daily", "weekly": "v_weekly", "monthly": "v_monthly", "quar
 # days since newest period_end before a series is flagged STALE
 STALE_AFTER = {"daily": 7, "monthly": 45}
 DUE_AFTER = {"daily": 4, "monthly": 35}
-LAG_EXTRA = {"dosm": 35}    # DOSM publishes ~2 months behind the data month
+LAG_EXTRA = {"dosm": 35}
+STOCK_KEY = "bepi:stocks:monthly_closing_stock_of_oil_palm_products:crude_palm_oil:total_palm_oil:tonnes"    # DOSM publishes ~2 months behind the data month
 
 
 _LOCK = threading.Lock()
@@ -110,7 +111,28 @@ def analytics_endpoint(key: str = "mpob:cpo_daily"):
                 h.setdefault(k[:-11], {})["pct"] = r["value"]
             else:
                 h.setdefault(k, {})["value"] = r["value"]
-        return {"price": analytics.price_stats(daily), "balance": analytics.balance(h), "status": "derived"}
+        balance = analytics.balance(h)
+        prod_key = "bepi:cpo_production:production_of_crude_palm_oil:malaysia:tonnes"
+        prod = con.execute("SELECT period_start, value FROM v_obs_latest WHERE series_key = ? AND granularity = 'm'",
+                           [prod_key]).df()
+        stock = con.execute("SELECT period_start, value FROM v_obs_latest WHERE series_key = ? AND granularity = 'm'",
+                            [STOCK_KEY]).df()
+        if balance and len(stock) >= 2 and {"po_import", "po_export"} <= h.keys():     # prefer published history
+            exact = analytics.exact_balance(stock, h["cpo_production"]["value"], h["po_import"]["value"],
+                                            h["po_export"]["value"])
+            if exact:
+                balance = {**balance, **exact}
+        states = _rows(con, """
+            WITH latest AS (
+              SELECT series_key, period_start, value, row_number() OVER (PARTITION BY series_key ORDER BY period_start DESC) rn
+              FROM v_obs_latest WHERE series_key LIKE 'bepi:cpo_production:%:tonnes' AND granularity = 'm')
+            SELECT split_part(l.series_key, ':', 4) AS state, strftime(l.period_start, '%Y-%m') AS period, l.value,
+                   round((l.value / p.value - 1) * 100, 1) AS yoy_pct
+            FROM latest l LEFT JOIN v_obs_latest p ON p.series_key = l.series_key
+                 AND p.period_start = l.period_start - INTERVAL 1 YEAR AND p.granularity = 'm'
+            WHERE l.rn = 1 ORDER BY l.value DESC""")
+        return {"price": analytics.price_stats(daily), "balance": balance, "production": analytics.production_band(prod),
+                "states": states, "status": "derived"}
     finally:
         con.close()
 
